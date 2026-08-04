@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>我的工作站</title>
+    <meta
+      name="description"
+      content="个人工作站：北京时间、多平台搜索、习惯打卡、设备与环境信息。"
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem("ws.theme");
+          var query = new URLSearchParams(window.location.search);
+          var forced = query.get("theme");
+          var dark = forced
+            ? forced === "dark"
+            : saved
+              ? saved === "dark"
+              : window.matchMedia("(prefers-color-scheme: dark)").matches;
+          document.documentElement.classList.toggle("dark", dark);
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
