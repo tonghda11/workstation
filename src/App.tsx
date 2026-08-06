@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import { Header } from "./components/Header";
 import { Clock } from "./components/Clock";
 import { News } from "./components/News";
+import { Bookmarks } from "./components/Bookmarks";
+import { Market } from "./components/Market";
 import { Checkin } from "./components/Checkin";
 import { Device } from "./components/Device";
 
@@ -44,10 +46,20 @@ export default function App() {
         </Reveal>
         <Reveal index={2} reduce={reduce}>
           <div className="mt-12 md:mt-16">
-            <Checkin />
+            <Bookmarks />
           </div>
         </Reveal>
         <Reveal index={3} reduce={reduce}>
+          <div className="mt-12 md:mt-16">
+            <Market />
+          </div>
+        </Reveal>
+        <Reveal index={4} reduce={reduce}>
+          <div className="mt-12 md:mt-16">
+            <Checkin />
+          </div>
+        </Reveal>
+        <Reveal index={5} reduce={reduce}>
           <div className="mt-12 md:mt-16">
             <Device />
           </div>

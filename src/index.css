@@ -15,6 +15,8 @@
   --ws-accent-ink: #ffffff;
   --ws-accent-soft: rgb(31 79 216 / 0.1);
   --ws-shadow: rgb(22 28 38 / 0.08);
+  --ws-up: #c23f37;
+  --ws-down: #0e7b52;
 }
 
 .dark {
@@ -30,6 +32,8 @@
   --ws-accent-ink: #0d1624;
   --ws-accent-soft: rgb(125 156 255 / 0.16);
   --ws-shadow: rgb(0 0 0 / 0.35);
+  --ws-up: #ff8a80;
+  --ws-down: #59d8a5;
 }
 
 @theme inline {
@@ -45,6 +49,8 @@
   --color-accent-ink: var(--ws-accent-ink);
   --color-accent-soft: var(--ws-accent-soft);
   --color-shadow: var(--ws-shadow);
+  --color-up: var(--ws-up);
+  --color-down: var(--ws-down);
 }
 
 @theme {
