@@ -26,6 +26,6 @@ npm run build
 
 ## 部署
 
-仓库内已包含 GitHub Pages 的 Actions 工作流
-（`.github/workflows/deploy.yml`）。推送到 `main` 分支后，在仓库设置中开启
-GitHub Pages（Source 选择 GitHub Actions）即可。
+仓库内的工作流（`.github/workflows/deploy.yml`）会在每次推送时自动构建，
+并把构建产物提交到 `docs/` 目录。GitHub Pages 设置为从 `main` 分支的
+`/docs` 目录发布即可，推送到 `main` 后网站自动更新。
