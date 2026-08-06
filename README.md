@@ -31,3 +31,5 @@ npm run build
 `/docs` 目录发布即可，推送到 `main` 后网站自动更新。
 
 线上地址：https://tonghda11.is-a.dev
+
+本地开发：`npm install` 后运行 `npm run dev`。
