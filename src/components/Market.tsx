@@ -123,29 +123,27 @@ function PanelBody({
       </div>
     );
   }
-  if (status === "loading") {
-    return (
-      <div className="mt-4 rounded-2xl border border-line bg-surface px-4 py-8 text-center text-sm text-mut">
-        正在获取行情…
-      </div>
-    );
-  }
-  if (status === "error") {
-    return (
-      <div className="mt-4 flex flex-col items-center gap-2 rounded-2xl border border-line bg-surface px-4 py-8 text-sm text-mut">
-        获取失败，请检查网络后重试
-        <button
-          type="button"
-          onClick={onRefresh}
-          className="inline-flex items-center gap-1 rounded-full border border-line-strong px-3 py-1 text-sm font-medium transition hover:border-accent hover:text-accent active:scale-95"
-        >
-          <ArrowClockwise size={13} weight="bold" />
-          重试
-        </button>
-      </div>
-    );
-  }
-  return <div className="mt-4 space-y-2">{children}</div>;
+  return (
+    <div className="mt-4">
+      {status === "loading" && (
+        <p className="mb-2 text-xs text-mut">正在获取行情…</p>
+      )}
+      {status === "error" && (
+        <div className="mb-2 flex items-center justify-between gap-2 rounded-xl border border-line bg-surface px-3 py-2 text-xs text-mut">
+          <span>行情获取失败，请检查网络后重试</span>
+          <button
+            type="button"
+            onClick={onRefresh}
+            className="inline-flex shrink-0 items-center gap-1 rounded-full border border-line-strong px-2.5 py-1 font-medium transition hover:border-accent hover:text-accent active:scale-95"
+          >
+            <ArrowClockwise size={12} weight="bold" />
+            重试
+          </button>
+        </div>
+      )}
+      <div className="space-y-2">{children}</div>
+    </div>
+  );
 }
 
 export function Market() {
@@ -364,7 +362,7 @@ export function Market() {
             ))}
           </PanelBody>
           <p className="mt-3 text-xs text-faint">
-            基金涨幅为当日估算值，来自天天基金估值接口。
+            基金涨幅优先显示当日估值，失败时自动回退到最近净值日涨跌，数据来自天天基金。
           </p>
         </div>
       </div>

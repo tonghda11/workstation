@@ -16,12 +16,12 @@ export interface FundQuote {
   time: string;
 }
 
-function loadScript(src: string, charset?: string): Promise<void> {
+function loadScript(src: string, charset?: string, timeoutMs = 12000): Promise<void> {
   return new Promise((resolve, reject) => {
     const el = document.createElement("script");
     el.src = src;
     if (charset) el.charset = charset;
-    const timer = window.setTimeout(() => reject(new Error("timeout")), 12000);
+    const timer = window.setTimeout(() => reject(new Error("timeout")), timeoutMs);
     el.onload = () => {
       window.clearTimeout(timer);
       resolve();
@@ -72,9 +72,21 @@ export async function fetchStocks(codes: string[]): Promise<StockQuote[]> {
   return out;
 }
 
-/** 通过天天基金估值接口获取单只基金估算涨幅 */
+function fmtDate(ts: number): string {
+  const d = new Date(ts);
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+/** 优先取当日估值，失败则回退到最近净值日涨跌 */
 export async function fetchFund(code: string): Promise<FundQuote | null> {
-  const src = `https://fundgz.1234567.com.cn/js/${code}.js?rt=${Date.now()}`;
+  const estimate = await fetchFundEstimate(code);
+  if (estimate) return estimate;
+  return fetchFundDaily(code);
+}
+
+function fetchFundEstimate(code: string): Promise<FundQuote | null> {
   return new Promise((resolve) => {
     let done = false;
     const finish = (v: FundQuote | null) => {
@@ -95,7 +107,58 @@ export async function fetchFund(code: string): Promise<FundQuote | null> {
         });
       }
     };
-    loadScript(src).catch(() => finish(null));
-    window.setTimeout(() => finish(null), 15000);
+    loadScript(
+      `https://fundgz.1234567.com.cn/js/${code}.js?rt=${Date.now()}`,
+      undefined,
+      6000
+    ).catch(() => finish(null));
+    window.setTimeout(() => finish(null), 7000);
+  });
+}
+
+function fetchFundDaily(code: string): Promise<FundQuote | null> {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (v: FundQuote | null) => {
+      if (!done) {
+        done = true;
+        resolve(v);
+      }
+    };
+    loadScript(
+      `https://fund.eastmoney.com/pingzhongdata/${code}.js?rt=${Date.now()}`,
+      undefined,
+      10000
+    )
+      .then(() => {
+        const win = window as unknown as Record<string, unknown>;
+        const name = String(win.fS_name || code);
+        const trend = win.Data_netWorthTrend;
+        if (!Array.isArray(trend) || trend.length < 2) {
+          finish(null);
+          return;
+        }
+        const last = trend[trend.length - 1] as Record<string, unknown>;
+        const prev = trend[trend.length - 2] as Record<string, unknown>;
+        const y1 = Number(last.y);
+        const y0 = Number(prev.y);
+        const rawPct = Number(last.equityReturn);
+        const pct =
+          Number.isFinite(rawPct)
+            ? rawPct
+            : y0 > 0
+              ? ((y1 - y0) / y0) * 100
+              : 0;
+        finish({
+          code,
+          name,
+          unitNav: y1,
+          estimateNav: y1,
+          estimatePct: Number.isFinite(pct) ? pct : 0,
+          time: fmtDate(Number(last.x) || Date.now()),
+        });
+      })
+      .catch(() => finish(null));
+    window.setTimeout(() => finish(null), 12000);
   });
 }
