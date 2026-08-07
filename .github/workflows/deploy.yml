@@ -28,7 +28,7 @@ jobs:
         run: |
           rm -rf docs
           mkdir -p docs
-          cp -r dist/* docs/
+          cp -r dist/. docs/
       - name: Commit built site
         run: |
           git config user.name "workstation-bot"
