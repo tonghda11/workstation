@@ -1,0 +1,28 @@
+{
+  "name": "我的工作站",
+  "short_name": "工作站",
+  "description": "个人工作站：北京时间、多平台搜索、常用网站、自选行情、视频下载、习惯打卡、设备与环境信息。",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#e9edf2",
+  "theme_color": "#1f4fd8",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
