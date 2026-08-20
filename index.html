@@ -9,6 +9,59 @@
       content="个人工作站：北京时间、多平台搜索、习惯打卡、设备与环境信息。"
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <style>
+      body {
+        margin: 0;
+        background: #e9edf2;
+      }
+      #app-loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 62vh;
+        gap: 12px;
+        font-family: system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;
+        color: #5b6779;
+      }
+      .app-loading-mark {
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
+        background: #1f4fd8;
+        color: #ffffff;
+        display: grid;
+        place-items: center;
+        font-size: 24px;
+        font-weight: 700;
+      }
+      .app-loading-btn {
+        margin-top: 4px;
+        padding: 8px 18px;
+        border-radius: 999px;
+        border: 1px solid rgba(22, 28, 38, 0.24);
+        background: transparent;
+        color: inherit;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #0c1116;
+        }
+        #app-loading {
+          color: #94a2b5;
+        }
+        .app-loading-mark {
+          background: #7d9cff;
+          color: #0d1624;
+        }
+        .app-loading-btn {
+          border-color: rgba(232, 237, 244, 0.24);
+        }
+      }
+    </style>
     <script>
       (function () {
         try {
@@ -24,9 +77,31 @@
         } catch (e) {}
       })();
     </script>
+    <script>
+      window.addEventListener("error", function () {
+        var root = document.getElementById("root");
+        if (root && root.querySelector("#app-loading")) {
+          root.innerHTML =
+            '<div id="app-loading"><div class="app-loading-mark">工</div>' +
+            "<p>加载失败，请检查网络后重试</p>" +
+            '<button class="app-loading-btn" onclick="location.reload()">刷新页面</button></div>';
+        }
+      });
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="app-loading">
+        <div class="app-loading-mark">工</div>
+        <p>正在加载工作站…</p>
+      </div>
+    </div>
+    <noscript>
+      <div id="app-loading">
+        <div class="app-loading-mark">工</div>
+        <p>请启用 JavaScript 后访问本网站。</p>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

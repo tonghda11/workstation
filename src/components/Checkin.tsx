@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Check, Plus, Trash, X } from "@phosphor-icons/react";
 import { useCheckins } from "../hooks/useCheckins";
@@ -14,6 +14,43 @@ export function Checkin() {
   const today = beijingDateKey(new Date());
   const doneToday = items.filter((item) => item.history[today]).length;
   const sorted = [...items].sort((a, b) => a.createdAt - b.createdAt);
+
+  const activeSet = useMemo(() => {
+    const set = new Set<string>();
+    for (const item of items) {
+      for (const key of Object.keys(item.history)) set.add(key);
+    }
+    return set;
+  }, [items]);
+
+  const calendar = useMemo(() => {
+    const [y, m, d] = today.split("-").map(Number);
+    const end = new Date(Date.UTC(y, m - 1, d));
+    const days: { key: string; active: boolean; isToday: boolean }[] = [];
+    for (let i = 90; i >= 0; i -= 1) {
+      const dt = new Date(end.getTime() - i * 86400000);
+      const key = dt.toISOString().slice(0, 10);
+      days.push({
+        key,
+        active: activeSet.has(key),
+        isToday: i === 0,
+      });
+    }
+    const weeks: (typeof days)[] = [];
+    for (let i = 0; i < days.length; i += 7) {
+      weeks.push(days.slice(i, i + 7));
+    }
+    return weeks;
+  }, [activeSet, today]);
+
+  const stats = useMemo(() => {
+    const keys = calendar.flat().map((c) => c.key);
+    const active = (n: number) =>
+      keys.slice(-n).filter((k) => activeSet.has(k)).length;
+    return { week: active(7), month: active(30) };
+  }, [calendar, activeSet]);
+
+  const weekdays = ["一", "二", "三", "四", "五", "六", "日"];
 
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -158,6 +195,79 @@ export function Checkin() {
           </button>
         )}
       </div>
+
+      {items.length > 0 && (
+        <div className="mt-6 rounded-2xl border border-line bg-surface2 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="font-semibold">打卡日历</h3>
+            <div className="flex gap-4 text-sm text-mut">
+              <span>
+                近 7 天
+                <span className="ml-1 font-mono font-semibold tabular-nums text-ink">
+                  {stats.week}/7
+                </span>
+                天
+              </span>
+              <span>
+                近 30 天
+                <span className="ml-1 font-mono font-semibold tabular-nums text-ink">
+                  {stats.month}/30
+                </span>
+                天
+              </span>
+            </div>
+          </div>
+          <div className="mt-4 overflow-x-auto">
+            <div className="inline-flex flex-col gap-1">
+              <div className="flex gap-1 pl-8">
+                {calendar.map((week, wi) => {
+                  const month = Number(week[0]?.key.slice(5, 7)) || 0;
+                  const prev = Number(calendar[wi - 1]?.[0]?.key.slice(5, 7)) || 0;
+                  return (
+                    <div
+                      key={week[0]?.key}
+                      className="w-3.5 text-center text-[10px] leading-3 text-faint md:w-4"
+                    >
+                      {month !== prev ? `${month}月` : ""}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex gap-1">
+                <div className="mr-2 flex w-6 flex-col gap-1 text-[10px] leading-3 text-faint">
+                  {weekdays.map((w) => (
+                    <span key={w}>{w}</span>
+                  ))}
+                </div>
+                {calendar.map((week) => (
+                  <div key={week[0]?.key} className="flex flex-col gap-1">
+                    {week.map((cell) => (
+                      <div
+                        key={cell.key}
+                        title={`${cell.key} ${cell.active ? "已打卡" : "未打卡"}`}
+                        className="h-3.5 w-3.5 rounded-[4px] md:h-4 md:w-4"
+                        style={{
+                          backgroundColor: cell.active
+                            ? "var(--ws-accent)"
+                            : "var(--ws-line)",
+                          opacity: cell.active ? 0.92 : 0.55,
+                          outline: cell.isToday
+                            ? "2px solid var(--ws-accent)"
+                            : undefined,
+                          outlineOffset: 1,
+                        }}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <p className="mt-3 text-xs text-faint">
+            任意项目当天打过卡即算完成，绿色为今天。
+          </p>
+        </div>
+      )}
     </section>
   );
 }

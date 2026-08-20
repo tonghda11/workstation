@@ -260,6 +260,7 @@ export function VideoDownload() {
           <li>网页受浏览器安全限制无法直接下载视频，生成的是在 Windows 电脑上运行的一键脚本。</li>
           <li>支持 YouTube、B 站、抖音、微博、Twitter/X 等 1000+ 网站。</li>
           <li>首次运行会自动下载 yt-dlp（约 20MB），必要时自动下载 ffmpeg；检测到本地代理（Clash / V2Ray）会自动使用。</li>
+          <li>下载器优先从 GitHub 官方渠道获取，镜像仅为备用；请只下载你有权保存的内容，并留意第三方镜像的潜在风险。</li>
           <li>视频默认保存到脚本所在文件夹的 videos 目录。</li>
         </ul>
       </div>

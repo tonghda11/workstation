@@ -14,6 +14,15 @@ const MARKET_LABELS: Record<Market, string> = {
 
 type Status = "idle" | "loading" | "ok" | "error";
 
+const hmFmt = new Intl.DateTimeFormat("zh-CN", {
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+function fmtHM(ts: number): string {
+  return hmFmt.format(new Date(ts));
+}
+
 function Pct({ value }: { value?: number }) {
   if (value === undefined || !Number.isFinite(value)) {
     return <span className="font-mono text-sm text-faint">--</span>;
@@ -106,12 +115,14 @@ function FundRow({
 function PanelBody({
   count,
   status,
+  updatedAt,
   emptyLabel,
   onRefresh,
   children,
 }: {
   count: number;
   status: Status;
+  updatedAt?: number | null;
   emptyLabel: string;
   onRefresh: () => void;
   children: React.ReactNode;
@@ -130,7 +141,11 @@ function PanelBody({
       )}
       {status === "error" && (
         <div className="mb-2 flex items-center justify-between gap-2 rounded-xl border border-line bg-surface px-3 py-2 text-xs text-mut">
-          <span>行情获取失败，请检查网络后重试</span>
+          <span>
+            数据更新失败
+            {updatedAt ? `，上次更新时间 ${fmtHM(updatedAt)}` : ""}
+            ，请检查网络后重试
+          </span>
           <button
             type="button"
             onClick={onRefresh}
@@ -163,8 +178,10 @@ export function Market() {
 
   const [stockQuotes, setStockQuotes] = useState<Record<string, StockQuote>>({});
   const [stockStatus, setStockStatus] = useState<Status>("idle");
+  const [stockUpdatedAt, setStockUpdatedAt] = useState<number | null>(null);
   const [fundQuotes, setFundQuotes] = useState<Record<string, FundQuote>>({});
   const [fundStatus, setFundStatus] = useState<Status>("idle");
+  const [fundUpdatedAt, setFundUpdatedAt] = useState<number | null>(null);
 
   useEffect(() => {
     if (stocks.length === 0) {
@@ -181,6 +198,7 @@ export function Market() {
         for (const q of qs) map[q.code] = q;
         setStockQuotes(map);
         setStockStatus(qs.length > 0 ? "ok" : "error");
+        if (qs.length > 0) setStockUpdatedAt(Date.now());
       })
       .catch(() => {
         if (!cancelled) setStockStatus("error");
@@ -208,6 +226,7 @@ export function Market() {
       if (cancelled) return;
       setFundQuotes(map);
       setFundStatus(Object.keys(map).length > 0 ? "ok" : "error");
+      if (Object.keys(map).length > 0) setFundUpdatedAt(Date.now());
     })();
     return () => {
       cancelled = true;
@@ -216,8 +235,17 @@ export function Market() {
 
   useEffect(() => {
     if (stocks.length === 0 && funds.length === 0) return;
-    const id = window.setInterval(() => setTick((t) => t + 1), 5 * 60 * 1000);
-    return () => window.clearInterval(id);
+    const id = window.setInterval(() => {
+      if (document.visibilityState === "visible") setTick((t) => t + 1);
+    }, 5 * 60 * 1000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") setTick((t) => t + 1);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [stocks.length, funds.length]);
 
   function submitStock(e: FormEvent<HTMLFormElement>) {
@@ -297,6 +325,7 @@ export function Market() {
           <PanelBody
             count={stocks.length}
             status={stockStatus}
+            updatedAt={stockUpdatedAt}
             emptyLabel="还没有股票，上方添加代码开始自选"
             onRefresh={refresh}
           >
@@ -349,6 +378,7 @@ export function Market() {
           <PanelBody
             count={funds.length}
             status={fundStatus}
+            updatedAt={fundUpdatedAt}
             emptyLabel="还没有基金，上方添加代码开始自选"
             onRefresh={refresh}
           >

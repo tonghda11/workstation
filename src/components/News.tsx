@@ -1,10 +1,57 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { ArrowUpRight, MagnifyingGlass } from "@phosphor-icons/react";
 import { NEWS_PLATFORMS } from "../lib/platforms";
 import { SectionHeader } from "./SectionHeader";
 
+const STORAGE_KEY = "ws.news.v1";
+
+function loadHidden(): string[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed.filter((x): x is string => typeof x === "string");
+    }
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      Array.isArray((parsed as { hidden?: unknown }).hidden)
+    ) {
+      return (parsed as { hidden: string[] }).hidden.filter(
+        (x): x is string => typeof x === "string"
+      );
+    }
+  } catch {
+    /* 忽略 */
+  }
+  return [];
+}
+
 export function News() {
   const [queries, setQueries] = useState<Record<string, string>>({});
+  const [hidden, setHidden] = useState<string[]>(loadHidden);
+  const visible = NEWS_PLATFORMS.filter((p) => !hidden.includes(p.id));
+  const gridClass =
+    visible.length >= 3
+      ? "md:grid-cols-3"
+      : visible.length === 2
+        ? "md:grid-cols-2"
+        : "md:grid-cols-1";
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(hidden));
+    } catch {
+      /* 忽略存储失败 */
+    }
+  }, [hidden]);
+
+  function toggle(id: string) {
+    setHidden((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }
 
   function submit(e: FormEvent<HTMLFormElement>, id: string, url: string) {
     e.preventDefault();
@@ -18,10 +65,32 @@ export function News() {
     <section aria-label="新闻平台">
       <SectionHeader
         title="新闻平台"
-        desc="三个搜索平台从左到右排列，输入关键词后回车，结果在新标签页打开。"
+        desc="按需显示搜索平台，输入关键词后回车，结果在新标签页打开。"
+        extra={
+          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="显示与隐藏搜索平台">
+            {NEWS_PLATFORMS.map((p) => {
+              const on = !hidden.includes(p.id);
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => toggle(p.id)}
+                  className={`rounded-full border px-3 py-1 text-sm font-medium transition active:scale-95 ${
+                    on
+                      ? "border-accent text-accent"
+                      : "border-line text-faint hover:text-mut"
+                  }`}
+                >
+                  {p.name}
+                </button>
+              );
+            })}
+          </div>
+        }
       />
-      <div className="grid gap-4 md:grid-cols-3">
-        {NEWS_PLATFORMS.map((p) => (
+      <div className={`grid gap-4 ${gridClass}`}>
+        {visible.map((p) => (
           <div
             key={p.id}
             className="group flex flex-col gap-4 rounded-2xl border border-line bg-surface2 p-5 transition-colors hover:border-line-strong"
@@ -40,6 +109,11 @@ export function News() {
                 <p className="font-mono text-xs text-faint">{p.latin}</p>
               </div>
             </div>
+            {p.id === "google" && (
+              <p className="-mt-2 text-xs text-faint">
+                需特定网络环境访问
+              </p>
+            )}
             <form
               className="flex gap-2"
               onSubmit={(e) => submit(e, p.id, p.searchUrl)}

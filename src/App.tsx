@@ -8,6 +8,7 @@ import { Market } from "./components/Market";
 import { VideoDownload } from "./components/VideoDownload";
 import { Checkin } from "./components/Checkin";
 import { Device } from "./components/Device";
+import { DataManager } from "./components/DataManager";
 
 function Reveal({
   children,
@@ -68,6 +69,11 @@ export default function App() {
         <Reveal index={6} reduce={reduce}>
           <div className="mt-12 md:mt-16">
             <Device />
+          </div>
+        </Reveal>
+        <Reveal index={7} reduce={reduce}>
+          <div className="mt-12 md:mt-16">
+            <DataManager />
           </div>
         </Reveal>
       </main>

@@ -88,7 +88,7 @@ export function Device() {
             />
           </div>
           <p className="mt-4 text-xs text-faint">
-            网络数据来自浏览器的 Network Information API，部分浏览器不提供。
+            网络数据来自浏览器的 Network Information API，属于浏览器估算的参考值，部分浏览器不提供。
           </p>
         </div>
 
