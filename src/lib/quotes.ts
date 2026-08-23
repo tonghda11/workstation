@@ -16,6 +16,11 @@ export interface FundQuote {
   time: string;
 }
 
+export interface KlinePoint {
+  date: string;
+  close: number;
+}
+
 function loadScript(src: string, charset?: string, timeoutMs = 12000): Promise<void> {
   return new Promise((resolve, reject) => {
     const el = document.createElement("script");
@@ -79,6 +84,90 @@ function fmtDate(ts: number): string {
   return `${d.getFullYear()}-${mm}-${dd}`;
 }
 
+function jsonp(url: string, timeoutMs = 12000): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    const win = window as unknown as Record<string, unknown>;
+    const cb = `ws_cb_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    let el: HTMLScriptElement | null = null;
+    let timer = 0;
+    const cleanup = () => {
+      window.clearTimeout(timer);
+      delete win[cb];
+      if (el) el.remove();
+    };
+    timer = window.setTimeout(() => {
+      cleanup();
+      reject(new Error("timeout"));
+    }, timeoutMs);
+    win[cb] = (data: unknown) => {
+      cleanup();
+      resolve(data);
+    };
+    el = document.createElement("script");
+    el.src = url.replace("{cb}", cb);
+    el.onerror = () => {
+      cleanup();
+      reject(new Error("load failed"));
+    };
+    document.head.appendChild(el);
+  });
+}
+
+/** 东方财富日 K 线（JSONP，无 CORS 限制） */
+export async function fetchStockKline(
+  secid: string,
+  limit = 90
+): Promise<KlinePoint[]> {
+  const url =
+    `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${secid}` +
+    `&klt=101&fqt=1&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56` +
+    `&beg=0&end=20500101&lmt=${limit}&cb={cb}`;
+  const data = (await jsonp(url)) as { data?: { klines?: string[] } };
+  const klines = data?.data?.klines ?? [];
+  return klines
+    .map((line) => {
+      const [date, , close] = line.split(",");
+      return { date, close: Number(close) };
+    })
+    .filter((p) => Number.isFinite(p.close) && p.close > 0);
+}
+
+function loadFundTrend(
+  code: string
+): Promise<{ x: number; y: number }[]> {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (v: { x: number; y: number }[]) => {
+      if (!done) {
+        done = true;
+        resolve(v);
+      }
+    };
+    loadScript(
+      `https://fund.eastmoney.com/pingzhongdata/${code}.js?rt=${Date.now()}`,
+      undefined,
+      10000
+    )
+      .then(() => {
+        const win = window as unknown as Record<string, unknown>;
+        const trend = win.Data_netWorthTrend;
+        finish(
+          Array.isArray(trend) ? (trend as { x: number; y: number }[]) : []
+        );
+      })
+      .catch(() => finish([]));
+    window.setTimeout(() => finish([]), 12000);
+  });
+}
+
+/** 基金净值走势（来自天天基金 pingzhongdata） */
+export async function fetchFundTrend(code: string): Promise<KlinePoint[]> {
+  const trend = await loadFundTrend(code);
+  return trend
+    .map((p) => ({ date: fmtDate(p.x), close: Number(p.y) }))
+    .filter((p) => Number.isFinite(p.close) && p.close > 0);
+}
+
 /** 优先取当日估值，失败则回退到最近净值日涨跌 */
 export async function fetchFund(code: string): Promise<FundQuote | null> {
   const estimate = await fetchFundEstimate(code);
@@ -116,49 +205,28 @@ function fetchFundEstimate(code: string): Promise<FundQuote | null> {
   });
 }
 
-function fetchFundDaily(code: string): Promise<FundQuote | null> {
-  return new Promise((resolve) => {
-    let done = false;
-    const finish = (v: FundQuote | null) => {
-      if (!done) {
-        done = true;
-        resolve(v);
-      }
-    };
-    loadScript(
-      `https://fund.eastmoney.com/pingzhongdata/${code}.js?rt=${Date.now()}`,
-      undefined,
-      10000
-    )
-      .then(() => {
-        const win = window as unknown as Record<string, unknown>;
-        const name = String(win.fS_name || code);
-        const trend = win.Data_netWorthTrend;
-        if (!Array.isArray(trend) || trend.length < 2) {
-          finish(null);
-          return;
-        }
-        const last = trend[trend.length - 1] as Record<string, unknown>;
-        const prev = trend[trend.length - 2] as Record<string, unknown>;
-        const y1 = Number(last.y);
-        const y0 = Number(prev.y);
-        const rawPct = Number(last.equityReturn);
-        const pct =
-          Number.isFinite(rawPct)
-            ? rawPct
-            : y0 > 0
-              ? ((y1 - y0) / y0) * 100
-              : 0;
-        finish({
-          code,
-          name,
-          unitNav: y1,
-          estimateNav: y1,
-          estimatePct: Number.isFinite(pct) ? pct : 0,
-          time: fmtDate(Number(last.x) || Date.now()),
-        });
-      })
-      .catch(() => finish(null));
-    window.setTimeout(() => finish(null), 12000);
-  });
+async function fetchFundDaily(code: string): Promise<FundQuote | null> {
+  const trend = await loadFundTrend(code);
+  if (trend.length < 2) return null;
+  const last = trend[trend.length - 1];
+  const prev = trend[trend.length - 2];
+  const win = window as unknown as Record<string, unknown>;
+  const name = String(win.fS_name || code);
+  const y1 = Number(last.y);
+  const y0 = Number(prev.y);
+  const rawPct = Number((last as Record<string, unknown>).equityReturn);
+  const pct =
+    Number.isFinite(rawPct)
+      ? rawPct
+      : y0 > 0
+        ? ((y1 - y0) / y0) * 100
+        : 0;
+  return {
+    code,
+    name,
+    unitNav: y1,
+    estimateNav: y1,
+    estimatePct: Number.isFinite(pct) ? pct : 0,
+    time: fmtDate(last.x),
+  };
 }

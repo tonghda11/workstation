@@ -6,11 +6,13 @@ export interface StockItem {
   id: string;
   market: Market;
   code: string;
+  pinned?: boolean;
 }
 
 export interface FundItem {
   id: string;
   code: string;
+  pinned?: boolean;
 }
 
 const STOCK_KEY = "ws.stocks.v1";
@@ -94,6 +96,12 @@ export function useWatchlist() {
     setStocks((prev) => prev.filter((s) => s.id !== id));
   }, []);
 
+  const pinStock = useCallback((id: string) => {
+    setStocks((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, pinned: !s.pinned } : s))
+    );
+  }, []);
+
   const addFund = useCallback((code: string) => {
     const c = code.trim();
     if (!c) return;
@@ -107,5 +115,20 @@ export function useWatchlist() {
     setFunds((prev) => prev.filter((f) => f.id !== id));
   }, []);
 
-  return { stocks, funds, addStock, removeStock, addFund, removeFund };
+  const pinFund = useCallback((id: string) => {
+    setFunds((prev) =>
+      prev.map((f) => (f.id === id ? { ...f, pinned: !f.pinned } : f))
+    );
+  }, []);
+
+  return {
+    stocks,
+    funds,
+    addStock,
+    removeStock,
+    pinStock,
+    addFund,
+    removeFund,
+    pinFund,
+  };
 }
