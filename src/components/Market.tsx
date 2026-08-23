@@ -146,7 +146,10 @@ function StockChart({ item }: { item: StockItem }) {
   useEffect(() => {
     let cancelled = false;
     setState("loading");
-    fetchStockKline(`${SECID_PREFIX[item.market]}.${item.code}`)
+    fetchStockKline(
+      `${item.market}${item.code}`,
+      `${SECID_PREFIX[item.market]}.${item.code}`
+    )
       .then((pts) => {
         if (cancelled) return;
         if (pts.length >= 2) {
@@ -680,7 +683,7 @@ export function Market() {
             ))}
           </PanelBody>
           <p className="mt-3 text-xs text-faint">
-            行情来自腾讯证券接口，走势图为近 90 个交易日日线，来自东方财富。
+            行情来自腾讯证券接口，走势图为近 90 个交易日日线，腾讯优先、失败回退东方财富。
           </p>
         </div>
 

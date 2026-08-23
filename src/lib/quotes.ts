@@ -113,10 +113,40 @@ function jsonp(url: string, timeoutMs = 12000): Promise<unknown> {
   });
 }
 
-/** 东方财富日 K 线（JSONP，无 CORS 限制） */
-export async function fetchStockKline(
+/** 腾讯日 K 线（script 标签，支持 A 股 / 港股 / 美股） */
+async function fetchStockKlineTencent(
+  tencentCode: string,
+  limit: number
+): Promise<KlinePoint[] | null> {
+  const varName = `ws_kline_${Date.now()}_${Math.random()
+    .toString(36)
+    .slice(2, 8)}`;
+  const url =
+    `https://web.ifzq.gtimg.cn/appstock/app/fqkline/get` +
+    `?param=${tencentCode},day,,,${limit},qfq&_var=${varName}`;
+  try {
+    await loadScript(url);
+    const win = window as unknown as Record<string, unknown>;
+    const data = win[varName] as {
+      data?: Record<
+        string,
+        { qfqday?: string[][]; day?: string[][] }
+      >;
+    };
+    const node = data?.data?.[tencentCode];
+    const rows = node?.qfqday ?? node?.day ?? [];
+    return rows
+      .map((r) => ({ date: r[0], close: Number(r[2]) }))
+      .filter((p) => Number.isFinite(p.close) && p.close > 0);
+  } catch {
+    return null;
+  }
+}
+
+/** 东方财富日 K 线（JSONP 回退源） */
+async function fetchStockKlineEastmoney(
   secid: string,
-  limit = 90
+  limit: number
 ): Promise<KlinePoint[]> {
   const url =
     `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${secid}` +
@@ -130,6 +160,24 @@ export async function fetchStockKline(
       return { date, close: Number(close) };
     })
     .filter((p) => Number.isFinite(p.close) && p.close > 0);
+}
+
+/** 股票走势图：优先腾讯 K 线，失败回退东方财富 */
+export async function fetchStockKline(
+  tencentCode: string,
+  secid: string,
+  limit = 90
+): Promise<KlinePoint[]> {
+  // US stocks need an exchange suffix (.OQ = Nasdaq / .N = NYSE);
+  // without a suffix Tencent only returns first & last day.
+  const candidates = tencentCode.startsWith("us")
+    ? [`${tencentCode}.OQ`, `${tencentCode}.N`]
+    : [tencentCode];
+  for (const cand of candidates) {
+    const fromTencent = await fetchStockKlineTencent(cand, limit);
+    if (fromTencent && fromTencent.length >= 3) return fromTencent;
+  }
+  return fetchStockKlineEastmoney(secid, limit);
 }
 
 function loadFundTrend(
