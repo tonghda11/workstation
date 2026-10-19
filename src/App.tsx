@@ -56,9 +56,24 @@ const NOTES: NoteDef[] = [
 export default function App() {
   return (
     <div className="app-shell">
-      <div className="wood-box">
-        <BoxLid />
-        <NoteStack notes={NOTES} />
+      <div className="stage">
+        <div className="drawer-shadow" aria-hidden="true" />
+        <div className="drawer3d">
+          <div className="drawer-face">
+            <div className="drawer-opening">
+              <BoxLid />
+              <NoteStack notes={NOTES} />
+            </div>
+            <div className="drawer-lip">
+              <span className="drawer-pull-plate" aria-hidden="true">
+                <span className="drawer-pull" />
+              </span>
+            </div>
+          </div>
+          <div className="drawer-top" aria-hidden="true" />
+          <div className="drawer-left" aria-hidden="true" />
+          <div className="drawer-right" aria-hidden="true" />
+        </div>
       </div>
     </div>
   );

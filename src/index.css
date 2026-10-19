@@ -19,15 +19,17 @@
   --ws-up: #c23f37;
   --ws-down: #0e7b52;
 
-  /* ---------- 木盒 ---------- */
+  /* ---------- 木桌与抽屉 ---------- */
   --wood-desk: #4b2d15;
   --wood-desk-2: #3a2110;
-  --wood-face: #8a5a2f;
+  --wood-face: #96652f;
   --wood-face-2: #6c4220;
+  --wood-face-3: #533013;
+  --wood-end: #a87c46;
   --wood-edge: #2a1608;
-  --wood-highlight: rgb(255 224 176 / 0.22);
+  --wood-highlight: rgb(255 224 176 / 0.26);
   --felt: #241508;
-  --felt-2: #150b04;
+  --felt-2: #120a03;
   --brass: #d9b26a;
   --brass-ink: #3a2410;
   --rail: rgb(240 219 184 / 0.62);
@@ -63,13 +65,15 @@
   --ws-down: #59d8a5;
 
   --wood-desk: #24150a;
-  --wood-desk-2: #150b04;
-  --wood-face: #55331a;
-  --wood-face-2: #3c2310;
-  --wood-edge: #12080088;
-  --wood-highlight: rgb(255 214 160 / 0.12);
+  --wood-desk-2: #140a03;
+  --wood-face: #63401f;
+  --wood-face-2: #45280f;
+  --wood-face-3: #311a09;
+  --wood-end: #8a6034;
+  --wood-edge: #10070088;
+  --wood-highlight: rgb(255 214 160 / 0.14);
   --felt: #150c05;
-  --felt-2: #0a0502;
+  --felt-2: #080401;
   --brass: #b98f4d;
   --brass-ink: #241505;
   --rail: rgb(226 198 158 / 0.5);
@@ -143,15 +147,15 @@
 }
 
 @layer components {
-  /* ================= 桌面与木盒 ================= */
+  /* ================= 桌面 ================= */
   .app-shell {
-    --shell-pad: clamp(6px, 1.6vw, 26px);
+    --shell-pad: clamp(14px, 3vw, 44px);
     position: relative;
     min-height: 100dvh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: grid;
+    place-items: center;
     padding: var(--shell-pad);
+    overflow: hidden;
     background-image:
       radial-gradient(900px 520px at 50% -12%, rgb(255 214 160 / 0.2), transparent 70%),
       radial-gradient(1200px 700px at 50% 120%, rgb(0 0 0 / 0.55), transparent 70%),
@@ -179,105 +183,308 @@
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
   }
 
-  .wood-box {
+  /* ================= 立体抽屉 ================= */
+  .stage {
     position: relative;
-    display: flex;
-    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    perspective: 1700px;
+    perspective-origin: 50% 42%;
+  }
+
+  /* 抽屉落在桌面上的投影 */
+  .drawer-shadow {
+    position: absolute;
+    left: 50%;
+    bottom: 0%;
+    width: min(960px, 88%);
+    height: 84px;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: radial-gradient(
+      closest-side,
+      rgb(0 0 0 / 0.8),
+      rgb(0 0 0 / 0.4) 56%,
+      transparent 100%
+    );
+    filter: blur(12px);
+    pointer-events: none;
+  }
+
+  .drawer3d {
+    --depth: 62px;
+    position: relative;
     width: min(1060px, 100%);
-    height: min(800px, calc(100dvh - var(--shell-pad) * 2));
-    padding: 10px;
-    border-radius: 20px;
-    border: 1px solid rgb(0 0 0 / 0.42);
+    height: min(800px, calc(100dvh - var(--shell-pad) * 2 - 24px));
+    transform-style: preserve-3d;
+    transform: rotateX(10deg) rotateY(-7deg);
+  }
+
+  /* ---------- 前面板 ---------- */
+  .drawer-face {
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
     background-image:
       repeating-linear-gradient(
         180deg,
-        rgb(255 255 255 / 0.035) 0 2px,
-        transparent 2px 7px
+        rgb(255 255 255 / 0.028) 0 2px,
+        transparent 2px 8px
       ),
       linear-gradient(
         178deg,
         var(--wood-highlight),
-        transparent 14%,
-        transparent 86%,
-        rgb(0 0 0 / 0.35)
+        transparent 10%,
+        transparent 88%,
+        rgb(0 0 0 / 0.4)
       ),
-      linear-gradient(180deg, var(--wood-face), var(--wood-face-2) 62%, var(--wood-face));
+      linear-gradient(180deg, var(--wood-face), var(--wood-face-2) 58%, var(--wood-face-3));
     box-shadow:
-      inset 0 1px 0 rgb(255 232 190 / 0.28),
+      inset 0 1px 0 rgb(255 236 198 / 0.4),
       inset 0 -2px 0 rgb(0 0 0 / 0.45),
-      0 34px 70px -24px rgb(0 0 0 / 0.85),
-      0 2px 0 rgb(0 0 0 / 0.3);
+      0 34px 60px -26px rgb(0 0 0 / 0.9);
   }
 
-  /* 木盒四角的铆钉 */
-  .wood-box::before,
-  .wood-box::after {
+  /* 抽屉厚度：顶面（端面木纹） */
+  .drawer-top {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: var(--depth);
+    transform-origin: top center;
+    transform: rotateX(-90deg);
+    border-radius: 6px 6px 0 0;
+    background-image:
+      repeating-linear-gradient(
+        92deg,
+        rgb(255 255 255 / 0.14) 0 2px,
+        transparent 2px 6px
+      ),
+      linear-gradient(
+        180deg,
+        rgb(255 233 196 / 0.35),
+        transparent 26%,
+        rgb(0 0 0 / 0.55)
+      ),
+      linear-gradient(180deg, var(--wood-end), #8a5f33 55%, #5d3c1d);
+    box-shadow: inset 0 1px 0 rgb(255 240 205 / 0.55);
+    backface-visibility: hidden;
+  }
+
+  /* 左右两侧厚度 */
+  .drawer-left,
+  .drawer-right {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: var(--depth);
+    background-image:
+      repeating-linear-gradient(
+        0deg,
+        rgb(255 255 255 / 0.04) 0 3px,
+        transparent 3px 9px
+      ),
+      linear-gradient(
+        90deg,
+        rgb(255 236 200 / 0.24),
+        rgb(122 76 40 / 0.12) 32%,
+        rgb(0 0 0 / 0.38)
+      );
+    background-color: #7a4c28;
+  }
+
+  .drawer-left {
+    left: 0;
+    transform-origin: left center;
+    transform: rotateY(90deg);
+    border-radius: 6px 0 0 6px;
+  }
+
+  .drawer-right {
+    right: 0;
+    transform-origin: right center;
+    transform: rotateY(-90deg);
+    border-radius: 0 6px 6px 0;
+  }
+
+  /* ---------- 内腔 ---------- */
+  .drawer-opening {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    top: 14px;
+    bottom: 92px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background-image:
+      radial-gradient(130% 80% at 50% -10%, rgb(255 200 140 / 0.1), transparent 52%),
+      linear-gradient(180deg, #1b0f05, var(--felt-2));
+    box-shadow:
+      inset 0 20px 34px -10px rgb(0 0 0 / 0.95),
+      inset 0 -12px 22px rgb(0 0 0 / 0.6),
+      inset 9px 0 20px rgb(0 0 0 / 0.5),
+      inset -9px 0 20px rgb(0 0 0 / 0.5),
+      inset 0 0 0 1px rgb(0 0 0 / 0.75),
+      0 1px 0 rgb(255 230 190 / 0.22);
+  }
+
+  /* 内腔后壁受光的上边缘 */
+  .drawer-opening::before {
     content: "";
     position: absolute;
+    inset: 0 0 auto;
+    height: 12px;
+    pointer-events: none;
+    background: linear-gradient(
+      180deg,
+      rgb(255 219 168 / 0.16),
+      rgb(0 0 0 / 0)
+    );
+    border-radius: 8px 8px 0 0;
+  }
+
+  /* ---------- 抽屉前挡板与拉手 ---------- */
+  .drawer-lip {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 86px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0 0 10px 10px;
+    transform: translateZ(4px);
+    background-image:
+      repeating-linear-gradient(
+        180deg,
+        rgb(255 255 255 / 0.035) 0 2px,
+        transparent 2px 9px
+      ),
+      linear-gradient(180deg, rgb(255 236 200 / 0.22), transparent 42%, rgb(0 0 0 / 0.28)),
+      linear-gradient(180deg, var(--wood-face), #7a4c26 55%, #5c3818);
+    box-shadow:
+      inset 0 1px 0 rgb(255 240 205 / 0.45),
+      0 -10px 22px rgb(0 0 0 / 0.5),
+      0 2px 0 rgb(0 0 0 / 0.25);
+  }
+
+  /* 拉手：黄铜横杆 + 内嵌底座 */
+  .drawer-pull-plate {
+    display: grid;
+    place-items: center;
+    width: 260px;
+    height: 46px;
+    border-radius: 9px;
+    background-image: linear-gradient(
+      180deg,
+      rgb(0 0 0 / 0.3),
+      rgb(255 235 200 / 0.07)
+    );
+    box-shadow:
+      inset 0 2px 7px rgb(0 0 0 / 0.6),
+      inset 0 -1px 0 rgb(255 230 190 / 0.22),
+      0 1px 0 rgb(255 236 200 / 0.12);
+  }
+
+  .drawer-pull {
+    position: relative;
+    width: 188px;
+    height: 11px;
+    border-radius: 999px;
+    background-image: linear-gradient(
+      180deg,
+      #f6dda6,
+      var(--brass) 45%,
+      #8a642c
+    );
+    box-shadow:
+      inset 0 1px 0 rgb(255 252 235 / 0.8),
+      0 3px 6px rgb(0 0 0 / 0.55),
+      0 1px 0 rgb(0 0 0 / 0.4);
+  }
+
+  .drawer-pull::before,
+  .drawer-pull::after {
+    content: "";
+    position: absolute;
+    top: -9px;
+    width: 9px;
+    height: 14px;
+    border-radius: 3px;
+    background-image: linear-gradient(
+      90deg,
+      #8a642c,
+      var(--brass) 45%,
+      #7d5a26
+    );
+    box-shadow: inset 0 1px 0 rgb(255 244 214 / 0.55);
+  }
+
+  .drawer-pull::before {
+    left: 16px;
+  }
+
+  .drawer-pull::after {
+    right: 16px;
+  }
+
+  /* 挡板两端的铆钉 */
+  .drawer-lip::before,
+  .drawer-lip::after {
+    content: "";
+    position: absolute;
+    top: 50%;
     width: 7px;
     height: 7px;
     border-radius: 50%;
+    transform: translateY(-50%);
     background: radial-gradient(circle at 35% 30%, #f2d59a, #9a7334 60%, #4b3312);
-    box-shadow: 0 1px 2px rgb(0 0 0 / 0.6);
-    pointer-events: none;
-    z-index: 2;
-  }
-  .wood-box::before {
-    left: 7px;
-    top: 7px;
-  }
-  .wood-box::after {
-    right: 7px;
-    bottom: 7px;
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 0.6),
+      inset 0 1px 0 rgb(255 250 230 / 0.5);
   }
 
+  .drawer-lip::before {
+    left: 24px;
+  }
+
+  .drawer-lip::after {
+    right: 24px;
+  }
+
+  /* ---------- 内腔里的铭牌（时间与主题） ---------- */
   .box-lid {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 14px;
-    padding: 8px 16px;
-    border-radius: 12px 12px 5px 5px;
+    gap: 12px;
+    margin: 0 0 6px;
+    padding: 8px 14px;
+    border-radius: 8px;
     background-image:
-      linear-gradient(180deg, rgb(255 236 200 / 0.22), transparent 55%),
-      linear-gradient(180deg, var(--wood-face), var(--wood-face-2));
+      linear-gradient(180deg, rgb(255 226 180 / 0.14), transparent 55%),
+      linear-gradient(180deg, #40280f, #241505 70%);
     box-shadow:
-      inset 0 1px 0 rgb(255 238 204 / 0.35),
-      inset 0 -1px 0 rgb(0 0 0 / 0.4),
-      0 3px 10px rgb(0 0 0 / 0.35);
+      inset 0 1px 0 rgb(255 226 180 / 0.22),
+      inset 0 -1px 0 rgb(0 0 0 / 0.6),
+      0 2px 6px rgb(0 0 0 / 0.5);
+    color: #f2dcb6;
   }
 
-  .brass-plate {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 8px;
-    padding: 3px 12px;
-    border-radius: 6px;
-    color: var(--brass-ink);
-    background-image: linear-gradient(180deg, #f0d49a, var(--brass) 55%, #a97f3f);
-    box-shadow:
-      inset 0 1px 0 rgb(255 250 230 / 0.7),
-      inset 0 -1px 0 rgb(80 50 12 / 0.45),
-      0 2px 4px rgb(0 0 0 / 0.35);
-  }
-
-  .box-interior {
+  /* 便利贴区域 */
+  .note-zone {
     position: relative;
-    display: flex;
     flex: 1;
-    flex-direction: column;
     min-height: 0;
-    overflow: hidden;
-    margin-top: 8px;
-    padding: 12px;
-    border-radius: 5px 5px 14px 14px;
-    background-image:
-      radial-gradient(120% 90% at 50% -6%, rgb(255 205 150 / 0.12), transparent 55%),
-      radial-gradient(120% 120% at 50% 100%, var(--felt-2), var(--felt) 70%);
-    box-shadow:
-      inset 0 16px 34px rgb(0 0 0 / 0.72),
-      inset 0 -6px 14px rgb(0 0 0 / 0.55),
-      inset 0 0 0 1px rgb(0 0 0 / 0.5);
+    display: flex;
+    flex-direction: column;
+    padding: 6px 8px 0;
   }
 
   .stack-viewport {
@@ -292,7 +499,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 8px 2px 0;
+    padding: 8px 2px 2px;
     color: var(--rail);
     font-size: 12px;
   }
@@ -309,6 +516,20 @@
     background: var(--brass);
     border-color: var(--brass);
     transform: scale(1.35);
+  }
+
+  .brass-plate {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 2px 9px;
+    border-radius: 5px;
+    color: var(--brass-ink);
+    background-image: linear-gradient(180deg, #f0d49a, var(--brass) 55%, #a97f3f);
+    box-shadow:
+      inset 0 1px 0 rgb(255 250 230 / 0.7),
+      inset 0 -1px 0 rgb(80 50 12 / 0.45),
+      0 2px 4px rgb(0 0 0 / 0.5);
   }
 
   /* ================= 便利贴 ================= */
@@ -375,25 +596,6 @@
       rgb(255 255 255 / 0.5) 100%
     );
     box-shadow: -2px -2px 5px rgb(0 0 0 / 0.1);
-  }
-
-  .note-tape {
-    position: absolute;
-    top: -11px;
-    left: 50%;
-    width: 116px;
-    height: 26px;
-    transform: translateX(-50%) rotate(-2.2deg);
-    background-image: linear-gradient(
-      180deg,
-      rgb(255 255 255 / 0.68),
-      rgb(240 232 200 / 0.48)
-    );
-    border-left: 1px dashed rgb(120 96 46 / 0.16);
-    border-right: 1px dashed rgb(120 96 46 / 0.16);
-    box-shadow: 0 2px 5px rgb(0 0 0 / 0.18);
-    opacity: 0.92;
-    pointer-events: none;
   }
 
   .note-body {
@@ -485,18 +687,59 @@
 }
 
 @media (max-width: 640px) {
-  .wood-box {
+  .app-shell {
+    --shell-pad: 10px;
+  }
+
+  .drawer3d {
+    --depth: 40px;
+    width: 100%;
     height: calc(100dvh - var(--shell-pad) * 2);
-    border-radius: 16px;
-    padding: 8px;
+    transform: rotateX(9deg) rotateY(-6deg);
+  }
+
+  .drawer-opening {
+    left: 9px;
+    right: 9px;
+    top: 9px;
+    bottom: 78px;
+  }
+
+  .drawer-lip {
+    height: 72px;
+  }
+
+  .drawer-lip::before {
+    left: 14px;
+  }
+
+  .drawer-lip::after {
+    right: 14px;
+  }
+
+  .drawer-pull-plate {
+    width: 190px;
+    height: 38px;
+  }
+
+  .drawer-pull {
+    width: 146px;
+    height: 10px;
+  }
+
+  .drawer-pull::before,
+  .drawer-pull::after {
+    top: -8px;
+    height: 12px;
   }
 
   .box-lid {
-    padding: 7px 12px;
+    margin: 0 0 4px;
+    padding: 6px 10px;
   }
 
-  .box-interior {
-    padding: 8px;
+  .note-zone {
+    padding: 4px 6px 0;
   }
 
   .note {
@@ -504,6 +747,6 @@
   }
 
   .note-body {
-    padding: 18px 18px 16px;
+    padding: 16px 16px 14px;
   }
 }

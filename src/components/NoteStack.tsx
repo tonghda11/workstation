@@ -300,7 +300,7 @@ export function NoteStack({ notes }: { notes: NoteDef[] }) {
   }, [go, notes.length]);
 
   return (
-    <div className="box-interior">
+    <div className="note-zone">
       <div
         ref={stackRef}
         className="stack-viewport"
@@ -329,7 +329,6 @@ export function NoteStack({ notes }: { notes: NoteDef[] }) {
               inert={!isActive}
               aria-label={note.label}
             >
-              {isActive && <span className="note-tape" aria-hidden="true" />}
               <div className="note-body">{note.content}</div>
             </article>
           );
