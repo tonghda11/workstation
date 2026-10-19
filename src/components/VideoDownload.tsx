@@ -92,7 +92,7 @@ set "PROXYOPT="
 if defined PROXY set "PROXYOPT=--proxy %PROXY%"
 
 echo.
-echo Downloading: %URL%
+echo Downloading: !URL!
 echo Files will be saved to: %OUT%
 echo.
 "%BIN%\\yt-dlp.exe" %PROXYOPT% %FFOPT% --concurrent-fragments 8 -o "%OUT%\\%%(title)s.%%(ext)s" "%URL%"

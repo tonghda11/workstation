@@ -607,7 +607,7 @@ export function Market() {
         desc="添加股票与基金代码，支持置顶、按涨幅排序，点击图表按钮查看近期走势。"
       />
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-line bg-surface2 p-5">
+        <div className="min-w-0 rounded-2xl border border-line bg-surface2 p-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="font-semibold">股票自选</h3>
             <div className="flex items-center gap-2">
@@ -687,7 +687,7 @@ export function Market() {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-line bg-surface2 p-5">
+        <div className="min-w-0 rounded-2xl border border-line bg-surface2 p-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="font-semibold">基金自选</h3>
             <div className="flex items-center gap-2">

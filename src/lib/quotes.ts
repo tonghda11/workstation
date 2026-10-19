@@ -39,9 +39,22 @@ function loadScript(src: string, charset?: string, timeoutMs = 12000): Promise<v
   });
 }
 
+/**
+ * 腾讯行情的时间字段有三种写法：
+ * - 沪深/北交所：`20261019161436`（紧凑 14 位）
+ * - 美股：`2026-10-19 13:30:40`
+ * - 港股：`2026/10/16 16:08:22`
+ * 带日期的写法需要保留月日，否则跨周末/休市时容易误读成当天。
+ */
 function fmtTime(raw: string): string {
-  if (raw.length >= 14) {
-    return `${raw.slice(8, 10)}:${raw.slice(10, 12)}:${raw.slice(12, 14)}`;
+  if (!raw) return "";
+  const dated = raw.match(/(\d{4})[-/](\d{2})[-/](\d{2})[ T](\d{2}):(\d{2})/);
+  if (dated) {
+    return `${dated[2]}-${dated[3]} ${dated[4]}:${dated[5]}`;
+  }
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length >= 14) {
+    return `${digits.slice(8, 10)}:${digits.slice(10, 12)}:${digits.slice(12, 14)}`;
   }
   return raw;
 }
