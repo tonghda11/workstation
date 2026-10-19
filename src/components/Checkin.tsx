@@ -1,271 +1,345 @@
 import { useMemo, useState, type FormEvent } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { Check, Plus, Trash, X } from "@phosphor-icons/react";
+import { CaretLeft, CaretRight, Check, Plus, X } from "@phosphor-icons/react";
 import { useCheckins } from "../hooks/useCheckins";
-import { beijingDateKey, beijingHM, createdLabel, streakFor } from "../lib/dates";
+import { beijingDateKey, streakFor } from "../lib/dates";
 import { SectionHeader } from "./SectionHeader";
 
+const PALETTE = [
+  "#b23a2b",
+  "#2f6f4f",
+  "#2b4f8f",
+  "#8a5a1f",
+  "#6b3fa0",
+  "#a03a6b",
+];
+
+const WEEKDAYS = ["一", "二", "三", "四", "五", "六", "日"];
+
+function pad(value: number): string {
+  return String(value).padStart(2, "0");
+}
+
+interface Cell {
+  key: string;
+  day: number;
+  isToday: boolean;
+  future: boolean;
+  doneIds: string[];
+}
+
 export function Checkin() {
-  const { items, addItem, toggleToday, removeItem } = useCheckins();
+  const { items, addItem, toggleDate, removeItem } = useCheckins();
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
-  const reduce = useReducedMotion();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const today = beijingDateKey(new Date());
-  const doneToday = items.filter((item) => item.history[today]).length;
-  const sorted = [...items].sort((a, b) => a.createdAt - b.createdAt);
+  const sorted = useMemo(
+    () => [...items].sort((a, b) => a.createdAt - b.createdAt),
+    [items]
+  );
 
-  const activeSet = useMemo(() => {
-    const set = new Set<string>();
-    for (const item of items) {
-      for (const key of Object.keys(item.history)) set.add(key);
-    }
-    return set;
-  }, [items]);
+  const todayKey = beijingDateKey(new Date());
+  const [todayYear, todayMonth] = todayKey.split("-").map(Number);
+  const [cursor, setCursor] = useState(() => ({
+    year: todayYear,
+    month: todayMonth - 1,
+  }));
 
-  const calendar = useMemo(() => {
-    const [y, m, d] = today.split("-").map(Number);
-    const end = new Date(Date.UTC(y, m - 1, d));
-    const days: { key: string; active: boolean; isToday: boolean }[] = [];
-    for (let i = 90; i >= 0; i -= 1) {
-      const dt = new Date(end.getTime() - i * 86400000);
-      const key = dt.toISOString().slice(0, 10);
-      days.push({
+  const selected =
+    sorted.find((item) => item.id === selectedId) ?? sorted[0] ?? null;
+
+  function colorOf(id: string): string {
+    const index = sorted.findIndex((item) => item.id === id);
+    return PALETTE[Math.max(0, index) % PALETTE.length];
+  }
+
+  const cells = useMemo(() => {
+    const firstWeekday =
+      (new Date(cursor.year, cursor.month, 1).getDay() + 6) % 7;
+    const daysInMonth = new Date(cursor.year, cursor.month + 1, 0).getDate();
+    const out: (Cell | null)[] = Array.from(
+      { length: firstWeekday },
+      () => null
+    );
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      const key = `${cursor.year}-${pad(cursor.month + 1)}-${pad(day)}`;
+      out.push({
         key,
-        active: activeSet.has(key),
-        isToday: i === 0,
+        day,
+        isToday: key === todayKey,
+        future: key > todayKey,
+        doneIds: sorted
+          .filter((item) => item.history[key])
+          .map((item) => item.id),
       });
     }
-    const weeks: (typeof days)[] = [];
-    for (let i = 0; i < days.length; i += 7) {
-      weeks.push(days.slice(i, i + 7));
-    }
-    return weeks;
-  }, [activeSet, today]);
+    while (out.length % 7 !== 0) out.push(null);
+    return out;
+  }, [cursor, sorted, todayKey]);
 
-  const stats = useMemo(() => {
-    const keys = calendar.flat().map((c) => c.key);
-    const active = (n: number) =>
-      keys.slice(-n).filter((k) => activeSet.has(k)).length;
-    return { week: active(7), month: active(30) };
-  }, [calendar, activeSet]);
+  const monthStats = useMemo(() => {
+    const filled = cells.filter((cell): cell is Cell => Boolean(cell));
+    return {
+      done: filled.filter((cell) => cell.doneIds.length > 0).length,
+      elapsed: filled.filter((cell) => !cell.future).length,
+    };
+  }, [cells]);
 
-  const weekdays = ["一", "二", "三", "四", "五", "六", "日"];
+  const doneToday = sorted.filter((item) => item.history[todayKey]).length;
 
-  function submit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     if (!draft.trim()) return;
     addItem(draft);
     setDraft("");
     setAdding(false);
   }
 
+  function shiftMonth(delta: number) {
+    setCursor((current) => {
+      const next = new Date(current.year, current.month + delta, 1);
+      return { year: next.getFullYear(), month: next.getMonth() };
+    });
+  }
+
+  function toggleCell(cell: Cell) {
+    if (!selected || cell.future) return;
+    toggleDate(selected.id, cell.key);
+  }
+
   return (
     <section aria-label="习惯打卡">
       <SectionHeader
-        title="习惯打卡"
-        desc="多个打卡项目按创建时间从左到右排列，新项目出现在最右侧。数据只保存在本机。"
+        title="打卡日历"
+        desc="点选一个项目，再点日期即可补记或取消；数据只保存在本机。"
         extra={
-          <p className="text-sm text-mut" aria-live="polite">
+          <p className="text-xs text-mut" aria-live="polite">
             今日
             <span className="mx-1 font-mono font-semibold tabular-nums text-ink">
-              {doneToday}/{items.length}
+              {doneToday}/{sorted.length}
             </span>
-            项完成
+            项
           </p>
         }
       />
-      <div className="scrollbar-none -mx-1 flex gap-3 overflow-x-auto px-1 pb-3 pt-1 snap-x">
-        <AnimatePresence initial={false}>
-          {sorted.map((item) => {
-            const done = Boolean(item.history[today]);
-            const stamp = item.history[today];
-            const streak = streakFor(item.history);
-            const lastTs = Math.max(0, ...Object.values(item.history));
-            return (
-              <motion.article
-                key={item.id}
-                layout
-                initial={reduce ? undefined : { opacity: 0, scale: 0.96 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={reduce ? undefined : { opacity: 0, scale: 0.96 }}
-                transition={{ duration: 0.25 }}
-                className="flex w-60 shrink-0 snap-start flex-col gap-3 rounded-2xl border border-line bg-surface2 p-4"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <h4 className="break-all font-medium leading-snug">
-                    {item.name}
-                  </h4>
-                  <button
-                    type="button"
-                    onClick={() => removeItem(item.id)}
-                    aria-label={`删除项目 ${item.name}`}
-                    className="-m-1 rounded-lg p-1 text-faint transition hover:text-ink active:scale-90"
-                  >
-                    <Trash size={15} />
-                  </button>
-                </div>
-                <motion.button
-                  type="button"
-                  onClick={() => toggleToday(item.id)}
-                  whileTap={reduce ? undefined : { scale: 0.97 }}
-                  className={
-                    done
-                      ? "inline-flex items-center justify-center gap-1.5 rounded-xl bg-accent py-2.5 text-sm font-medium text-accent-ink transition"
-                      : "inline-flex items-center justify-center gap-1.5 rounded-xl border border-line-strong py-2.5 text-sm font-medium text-mut transition hover:border-accent hover:text-accent"
-                  }
-                >
-                  {done ? (
-                    <>
-                      <Check size={16} weight="bold" />
-                      {stamp ? `已打卡 ${beijingHM(stamp)}` : "已打卡"}
-                    </>
-                  ) : (
-                    "今天打卡"
-                  )}
-                </motion.button>
-                <dl className="space-y-1.5 border-t border-line pt-3 text-xs text-mut">
-                  <div className="flex items-center justify-between">
-                    <dt>连续</dt>
-                    <dd className="font-mono tabular-nums text-ink">
-                      {streak} 天
-                    </dd>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <dt>最近打卡</dt>
-                    <dd className="font-mono tabular-nums text-ink">
-                      {lastTs ? beijingHM(lastTs) : "未打卡"}
-                    </dd>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <dt>始于</dt>
-                    <dd className="font-mono tabular-nums text-ink">
-                      {createdLabel(item.createdAt)}
-                    </dd>
-                  </div>
-                </dl>
-              </motion.article>
-            );
-          })}
-        </AnimatePresence>
 
-        {adding ? (
-          <form
-            onSubmit={submit}
-            className="flex w-60 shrink-0 snap-start flex-col justify-center gap-3 rounded-2xl border border-dashed border-line-strong bg-surface p-4"
-          >
-            <input
-              autoFocus
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder="项目名称，比如晨跑"
-              aria-label="新打卡项目名称"
-              className="w-full rounded-[10px] border border-line bg-surface2 px-3 py-2 text-sm focus:border-accent"
-            />
-            <div className="flex gap-2">
+      <div className="flex flex-wrap items-center gap-1.5">
+        {sorted.map((item) => {
+          const active = selected?.id === item.id;
+          return (
+            <span
+              key={item.id}
+              className={`inline-flex items-center gap-0.5 rounded-full border py-0.5 pl-2 pr-1 text-xs transition ${
+                active
+                  ? "border-ink/50 bg-white/60"
+                  : "border-line bg-white/25 hover:bg-white/45"
+              }`}
+            >
               <button
-                type="submit"
-                disabled={!draft.trim()}
-                className="inline-flex flex-1 items-center justify-center gap-1 rounded-full bg-accent py-2 text-sm font-medium text-accent-ink transition disabled:opacity-40 active:scale-95"
+                type="button"
+                aria-pressed={active}
+                onClick={() => setSelectedId(item.id)}
+                className="inline-flex items-center gap-1.5 py-0.5"
               >
-                <Check size={15} weight="bold" />
-                添加
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: colorOf(item.id) }}
+                />
+                {item.name}
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setAdding(false);
-                  setDraft("");
-                }}
-                aria-label="取消添加"
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-line text-mut transition hover:text-ink active:scale-90"
+                onClick={() => removeItem(item.id)}
+                aria-label={`删除项目 ${item.name}`}
+                className="grid h-5 w-5 place-items-center rounded-full text-faint transition hover:text-ink"
               >
-                <X size={15} weight="bold" />
+                <X size={10} weight="bold" />
               </button>
-            </div>
+            </span>
+          );
+        })}
+
+        {adding ? (
+          <form onSubmit={submit} className="inline-flex items-center gap-1">
+            <input
+              autoFocus
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              placeholder="新项目"
+              aria-label="新打卡项目名称"
+              className="ink-input w-24 rounded-full border px-2.5 py-1 text-xs text-ink placeholder:text-faint"
+            />
+            <button
+              type="submit"
+              disabled={!draft.trim()}
+              aria-label="确认添加"
+              className="grid h-6 w-6 place-items-center rounded-full bg-accent text-accent-ink transition disabled:opacity-40"
+            >
+              <Check size={11} weight="bold" />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAdding(false);
+                setDraft("");
+              }}
+              aria-label="取消添加"
+              className="grid h-6 w-6 place-items-center rounded-full border border-line text-mut"
+            >
+              <X size={10} />
+            </button>
           </form>
         ) : (
           <button
             type="button"
             onClick={() => setAdding(true)}
-            className="flex w-60 shrink-0 snap-start items-center justify-center gap-2 self-stretch rounded-2xl border border-dashed border-line-strong bg-surface text-sm font-medium text-mut transition hover:border-accent hover:text-accent active:scale-[0.99]"
+            className="inline-flex items-center gap-1 rounded-full border border-dashed border-line-strong px-2.5 py-1 text-xs text-mut transition hover:border-accent hover:text-accent"
           >
-            <Plus size={16} weight="bold" />
-            {items.length === 0 ? "添加第一个打卡项目" : "添加项目"}
+            <Plus size={11} weight="bold" />
+            项目
           </button>
         )}
       </div>
 
-      {items.length > 0 && (
-        <div className="mt-6 rounded-2xl border border-line bg-surface2 p-5">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="font-semibold">打卡日历</h3>
-            <div className="flex gap-4 text-sm text-mut">
-              <span>
-                近 7 天
-                <span className="ml-1 font-mono font-semibold tabular-nums text-ink">
-                  {stats.week}/7
-                </span>
-                天
+      {sorted.length === 0 ? (
+        <p className="mt-4 rounded-lg border border-dashed border-line-strong px-3 py-7 text-center text-xs text-mut">
+          先添加一个打卡项目，再在日历上标记。
+        </p>
+      ) : (
+        <div className="mt-4 grid items-start gap-4 lg:grid-cols-[minmax(0,540px)_minmax(0,1fr)]">
+          <div className="min-w-0">
+            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => shiftMonth(-1)}
+                aria-label="上个月"
+                className="grid h-7 w-7 place-items-center rounded-full border border-line text-mut transition hover:border-line-strong hover:text-ink"
+              >
+                <CaretLeft size={12} weight="bold" />
+              </button>
+              <span className="font-hand px-1 text-base font-bold tabular-nums text-ink">
+                {cursor.year}年{cursor.month + 1}月
               </span>
+              <button
+                type="button"
+                onClick={() => shiftMonth(1)}
+                aria-label="下个月"
+                className="grid h-7 w-7 place-items-center rounded-full border border-line text-mut transition hover:border-line-strong hover:text-ink"
+              >
+                <CaretRight size={12} weight="bold" />
+              </button>
+            </div>
+            <div className="flex items-center gap-2 text-[11px] text-mut">
               <span>
-                近 30 天
-                <span className="ml-1 font-mono font-semibold tabular-nums text-ink">
-                  {stats.month}/30
-                </span>
-                天
+                本月
+                <b className="mx-1 font-mono text-ink">{monthStats.done}</b>/
+                {monthStats.elapsed} 天
               </span>
+              <button
+                type="button"
+                onClick={() =>
+                  setCursor({ year: todayYear, month: todayMonth - 1 })
+                }
+                className="rounded-full border border-line px-2 py-0.5 transition hover:border-accent hover:text-accent"
+              >
+                今天
+              </button>
             </div>
           </div>
-          <div className="mt-4 overflow-x-auto">
-            <div className="inline-flex flex-col gap-1">
-              <div className="flex gap-1 pl-8">
-                {calendar.map((week, wi) => {
-                  const month = Number(week[0]?.key.slice(5, 7)) || 0;
-                  const prev = Number(calendar[wi - 1]?.[0]?.key.slice(5, 7)) || 0;
-                  return (
-                    <div
-                      key={week[0]?.key}
-                      className="w-3.5 text-center text-[10px] leading-3 text-faint md:w-4"
-                    >
-                      {month !== prev ? `${month}月` : ""}
-                    </div>
-                  );
-                })}
+
+          <div className="mt-2 grid grid-cols-7 gap-1">
+            {WEEKDAYS.map((weekday) => (
+              <div
+                key={weekday}
+                className="pb-1 text-center text-[10px] text-faint"
+              >
+                {weekday}
               </div>
-              <div className="flex gap-1">
-                <div className="mr-2 flex w-6 flex-col gap-1 text-[10px] leading-3 text-faint">
-                  {weekdays.map((w) => (
-                    <span key={w}>{w}</span>
-                  ))}
-                </div>
-                {calendar.map((week) => (
-                  <div key={week[0]?.key} className="flex flex-col gap-1">
-                    {week.map((cell) => (
-                      <div
-                        key={cell.key}
-                        title={`${cell.key} ${cell.active ? "已打卡" : "未打卡"}`}
-                        className="h-3.5 w-3.5 rounded-[4px] md:h-4 md:w-4"
-                        style={{
-                          backgroundColor: cell.active
-                            ? "var(--ws-accent)"
-                            : "var(--ws-line)",
-                          opacity: cell.active ? 0.92 : 0.55,
-                          outline: cell.isToday
-                            ? "2px solid var(--ws-accent)"
-                            : undefined,
-                          outlineOffset: 1,
-                        }}
+            ))}
+            {cells.map((cell, index) =>
+              cell ? (
+                <button
+                  key={cell.key}
+                  type="button"
+                  onClick={() => toggleCell(cell)}
+                  disabled={cell.future}
+                  aria-label={`${cursor.month + 1}月${cell.day}日，已完成 ${cell.doneIds.length} 项`}
+                  className={`flex h-11 flex-col items-center rounded-md border pt-1 text-[11px] leading-none transition md:h-12 ${
+                    cell.isToday
+                      ? "border-accent bg-white/50"
+                      : "border-line hover:bg-white/40"
+                  } ${cell.future ? "opacity-35" : ""}`}
+                >
+                  <span
+                    className={
+                      cell.isToday ? "font-bold text-accent" : "text-ink"
+                    }
+                  >
+                    {cell.day}
+                  </span>
+                  <span className="mt-1 flex items-center gap-0.5">
+                    {cell.doneIds.slice(0, 3).map((id) => (
+                      <span
+                        key={id}
+                        className="h-1.5 w-1.5 rounded-full"
+                        style={{ backgroundColor: colorOf(id) }}
                       />
                     ))}
-                  </div>
-                ))}
-              </div>
-            </div>
+                    {cell.doneIds.length > 3 && (
+                      <span className="text-[8px] text-mut">
+                        +{cell.doneIds.length - 3}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              ) : (
+                <div key={`blank-${index}`} />
+              )
+            )}
           </div>
-          <p className="mt-3 text-xs text-faint">
-            任意项目当天打过卡即算完成，绿色为今天。
+
+          <p className="mt-2 text-[11px] text-faint">
+            当前项目「{selected?.name}」：点日期打卡或取消，未来日期不可点。
           </p>
+          </div>
+
+          <aside className="rounded-xl border border-line bg-white/35 p-3">
+            <div className="flex items-baseline justify-between">
+              <h3 className="font-hand text-base font-bold">本月概览</h3>
+              <span className="text-[11px] text-mut">
+                {cursor.month + 1} 月
+              </span>
+            </div>
+            <ul className="mt-2 space-y-1.5">
+              {sorted.map((item) => {
+                const monthCount = cells.reduce(
+                  (total, cell) =>
+                    cell && item.history[cell.key] ? total + 1 : total,
+                  0
+                );
+                return (
+                  <li key={item.id} className="flex items-center gap-2 text-xs">
+                    <span
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: colorOf(item.id) }}
+                    />
+                    <span className="min-w-0 flex-1 truncate">{item.name}</span>
+                    <span className="font-mono tabular-nums text-ink">
+                      {monthCount}
+                    </span>
+                    <span className="text-[10px] text-mut">天</span>
+                    <span className="rounded-full border border-line px-1.5 py-0.5 text-[10px] text-mut">
+                      连续 {streakFor(item.history)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="mt-2 border-t border-line pt-2 text-[10px] leading-relaxed text-faint">
+              点选项目后点日期即可补记或取消；连续天数从最近一次打卡往前数。
+            </p>
+          </aside>
         </div>
       )}
     </section>

@@ -3,6 +3,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+  /* ---------- 语义色（默认，页面级） ---------- */
   --ws-bg: #e9edf2;
   --ws-surface: #f4f6f9;
   --ws-surface-2: #ffffff;
@@ -17,6 +18,32 @@
   --ws-shadow: rgb(22 28 38 / 0.08);
   --ws-up: #c23f37;
   --ws-down: #0e7b52;
+
+  /* ---------- 木盒 ---------- */
+  --wood-desk: #4b2d15;
+  --wood-desk-2: #3a2110;
+  --wood-face: #8a5a2f;
+  --wood-face-2: #6c4220;
+  --wood-edge: #2a1608;
+  --wood-highlight: rgb(255 224 176 / 0.22);
+  --felt: #241508;
+  --felt-2: #150b04;
+  --brass: #d9b26a;
+  --brass-ink: #3a2410;
+  --rail: rgb(240 219 184 / 0.62);
+  --rail-dim: rgb(240 219 184 / 0.28);
+
+  /* ---------- 便利贴 ---------- */
+  --note-yellow: #f7e9a3;
+  --note-blue: #cfe2f2;
+  --note-green: #d3e7c8;
+  --note-orange: #f8d9b0;
+  --note-pink: #f6d3d8;
+  --note-purple: #ded4ef;
+  --note-mint: #cfe8e0;
+
+  --font-hand: "Kaiti SC", "STKaiti", "KaiTi", "楷体", "Songti SC", "SimSun",
+    serif;
 }
 
 .dark {
@@ -34,6 +61,19 @@
   --ws-shadow: rgb(0 0 0 / 0.35);
   --ws-up: #ff8a80;
   --ws-down: #59d8a5;
+
+  --wood-desk: #24150a;
+  --wood-desk-2: #150b04;
+  --wood-face: #55331a;
+  --wood-face-2: #3c2310;
+  --wood-edge: #12080088;
+  --wood-highlight: rgb(255 214 160 / 0.12);
+  --felt: #150c05;
+  --felt-2: #0a0502;
+  --brass: #b98f4d;
+  --brass-ink: #241505;
+  --rail: rgb(226 198 158 / 0.5);
+  --rail-dim: rgb(226 198 158 / 0.22);
 }
 
 @theme inline {
@@ -60,6 +100,8 @@
   --font-mono:
     ui-monospace, "Cascadia Mono", "SF Mono", Consolas, "Liberation Mono",
     Menlo, monospace;
+  --font-hand:
+    "Kaiti SC", "STKaiti", "KaiTi", "楷体", "Songti SC", "SimSun", serif;
 }
 
 @layer base {
@@ -68,14 +110,16 @@
   }
 
   body {
-    background-color: var(--ws-bg);
+    margin: 0;
     color: var(--ws-ink);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    background-color: var(--wood-desk-2);
   }
 
   ::selection {
-    background-color: var(--ws-accent-soft);
+    background-color: rgb(255 236 168 / 0.65);
+    color: #241c12;
   }
 
   :focus-visible {
@@ -85,16 +129,337 @@
 
   ::-webkit-scrollbar {
     height: 8px;
-    width: 10px;
+    width: 9px;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: var(--ws-line-strong);
+    background: rgb(60 46 28 / 0.28);
     border-radius: 999px;
   }
 
   ::-webkit-scrollbar-track {
     background: transparent;
+  }
+}
+
+@layer components {
+  /* ================= 桌面与木盒 ================= */
+  .app-shell {
+    --shell-pad: clamp(6px, 1.6vw, 26px);
+    position: relative;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--shell-pad);
+    background-image:
+      radial-gradient(900px 520px at 50% -12%, rgb(255 214 160 / 0.2), transparent 70%),
+      radial-gradient(1200px 700px at 50% 120%, rgb(0 0 0 / 0.55), transparent 70%),
+      repeating-linear-gradient(
+        180deg,
+        transparent 0 118px,
+        rgb(0 0 0 / 0.32) 118px 120px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        rgb(255 255 255 / 0.022) 0 3px,
+        transparent 3px 11px
+      ),
+      linear-gradient(96deg, var(--wood-desk-2), var(--wood-desk) 38%, var(--wood-desk-2));
+    background-color: var(--wood-desk-2);
+  }
+
+  .app-shell::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.16;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
+  }
+
+  .wood-box {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: min(1060px, 100%);
+    height: min(800px, calc(100dvh - var(--shell-pad) * 2));
+    padding: 10px;
+    border-radius: 20px;
+    border: 1px solid rgb(0 0 0 / 0.42);
+    background-image:
+      repeating-linear-gradient(
+        180deg,
+        rgb(255 255 255 / 0.035) 0 2px,
+        transparent 2px 7px
+      ),
+      linear-gradient(
+        178deg,
+        var(--wood-highlight),
+        transparent 14%,
+        transparent 86%,
+        rgb(0 0 0 / 0.35)
+      ),
+      linear-gradient(180deg, var(--wood-face), var(--wood-face-2) 62%, var(--wood-face));
+    box-shadow:
+      inset 0 1px 0 rgb(255 232 190 / 0.28),
+      inset 0 -2px 0 rgb(0 0 0 / 0.45),
+      0 34px 70px -24px rgb(0 0 0 / 0.85),
+      0 2px 0 rgb(0 0 0 / 0.3);
+  }
+
+  /* 木盒四角的铆钉 */
+  .wood-box::before,
+  .wood-box::after {
+    content: "";
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #f2d59a, #9a7334 60%, #4b3312);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.6);
+    pointer-events: none;
+    z-index: 2;
+  }
+  .wood-box::before {
+    left: 7px;
+    top: 7px;
+  }
+  .wood-box::after {
+    right: 7px;
+    bottom: 7px;
+  }
+
+  .box-lid {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 8px 16px;
+    border-radius: 12px 12px 5px 5px;
+    background-image:
+      linear-gradient(180deg, rgb(255 236 200 / 0.22), transparent 55%),
+      linear-gradient(180deg, var(--wood-face), var(--wood-face-2));
+    box-shadow:
+      inset 0 1px 0 rgb(255 238 204 / 0.35),
+      inset 0 -1px 0 rgb(0 0 0 / 0.4),
+      0 3px 10px rgb(0 0 0 / 0.35);
+  }
+
+  .brass-plate {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 3px 12px;
+    border-radius: 6px;
+    color: var(--brass-ink);
+    background-image: linear-gradient(180deg, #f0d49a, var(--brass) 55%, #a97f3f);
+    box-shadow:
+      inset 0 1px 0 rgb(255 250 230 / 0.7),
+      inset 0 -1px 0 rgb(80 50 12 / 0.45),
+      0 2px 4px rgb(0 0 0 / 0.35);
+  }
+
+  .box-interior {
+    position: relative;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    margin-top: 8px;
+    padding: 12px;
+    border-radius: 5px 5px 14px 14px;
+    background-image:
+      radial-gradient(120% 90% at 50% -6%, rgb(255 205 150 / 0.12), transparent 55%),
+      radial-gradient(120% 120% at 50% 100%, var(--felt-2), var(--felt) 70%);
+    box-shadow:
+      inset 0 16px 34px rgb(0 0 0 / 0.72),
+      inset 0 -6px 14px rgb(0 0 0 / 0.55),
+      inset 0 0 0 1px rgb(0 0 0 / 0.5);
+  }
+
+  .stack-viewport {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    perspective: 1400px;
+  }
+
+  .stack-rail {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 2px 0;
+    color: var(--rail);
+    font-size: 12px;
+  }
+
+  .rail-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    border: 1px solid var(--rail-dim);
+    background: transparent;
+    transition: transform 0.25s ease, background-color 0.25s ease;
+  }
+  .rail-dot[data-active="true"] {
+    background: var(--brass);
+    border-color: var(--brass);
+    transform: scale(1.35);
+  }
+
+  /* ================= 便利贴 ================= */
+  .note {
+    /* 纸张配色：盖住全局语义色，模块里的 bg-surface2 / text-ink 自动落到纸上 */
+    --ws-ink: #2b2317;
+    --ws-mut: #6b5f4b;
+    --ws-faint: #8e8270;
+    --ws-surface: rgb(255 255 255 / 0.4);
+    --ws-surface-2: rgb(255 255 255 / 0.62);
+    --ws-line: rgb(43 35 23 / 0.14);
+    --ws-line-strong: rgb(43 35 23 / 0.3);
+    --ws-accent: #2c4f86;
+    --ws-accent-ink: #ffffff;
+    --ws-accent-soft: rgb(44 79 134 / 0.12);
+    --ws-up: #bd3a2b;
+    --ws-down: #1d7a4d;
+
+    position: absolute;
+    inset: 16px 0 26px;
+    display: flex;
+    flex-direction: column;
+    border-radius: 3px 3px 5px 5px;
+    color: var(--ws-ink);
+    background-color: var(--note-color);
+    background-image:
+      radial-gradient(120% 70% at 50% -8%, rgb(255 255 255 / 0.55), transparent 62%),
+      linear-gradient(178deg, rgb(255 255 255 / 0.2), transparent 26%),
+      linear-gradient(180deg, transparent 72%, rgb(86 58 20 / 0.07));
+    box-shadow:
+      0 22px 40px -18px rgb(0 0 0 / 0.66),
+      0 2px 0 rgb(255 255 255 / 0.24) inset,
+      0 -2px 6px rgb(90 62 20 / 0.12) inset;
+    transform-style: preserve-3d;
+    will-change: transform, opacity;
+  }
+
+  /* 纸张纤维 */
+  .note::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.055;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='p'><feTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/></filter><rect width='140' height='140' filter='url(%23p)'/></svg>");
+  }
+
+  /* 右下角翘边 */
+  .note::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 30px;
+    height: 30px;
+    pointer-events: none;
+    border-radius: 0 0 5px 0;
+    background-image: linear-gradient(
+      315deg,
+      rgb(120 86 30 / 0.0) 46%,
+      rgb(120 86 30 / 0.18) 50%,
+      rgb(255 250 230 / 0.72) 72%,
+      rgb(255 255 255 / 0.5) 100%
+    );
+    box-shadow: -2px -2px 5px rgb(0 0 0 / 0.1);
+  }
+
+  .note-tape {
+    position: absolute;
+    top: -11px;
+    left: 50%;
+    width: 116px;
+    height: 26px;
+    transform: translateX(-50%) rotate(-2.2deg);
+    background-image: linear-gradient(
+      180deg,
+      rgb(255 255 255 / 0.68),
+      rgb(240 232 200 / 0.48)
+    );
+    border-left: 1px dashed rgb(120 96 46 / 0.16);
+    border-right: 1px dashed rgb(120 96 46 / 0.16);
+    box-shadow: 0 2px 5px rgb(0 0 0 / 0.18);
+    opacity: 0.92;
+    pointer-events: none;
+  }
+
+  .note-body {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: clamp(14px, 2.4vw, 26px) clamp(16px, 3vw, 32px)
+      clamp(14px, 2.4vw, 24px);
+    scrollbar-width: thin;
+    scrollbar-color: rgb(70 54 32 / 0.3) transparent;
+  }
+
+  .note-title {
+    font-family: var(--font-hand);
+    font-weight: 700;
+    letter-spacing: 0.015em;
+    color: #241c12;
+  }
+
+  .note-title::after {
+    content: "";
+    display: block;
+    width: 58px;
+    height: 4px;
+    margin-top: 3px;
+    border-radius: 2px;
+    background: var(--ws-accent);
+    opacity: 0.5;
+    transform: rotate(-1.2deg);
+  }
+
+  .note-hint {
+    font-family: var(--font-hand);
+    color: #5e5340;
+  }
+
+  .ink-input {
+    background-color: rgb(255 255 255 / 0.55);
+    border-color: rgb(43 35 23 / 0.16);
+  }
+  .ink-input:focus {
+    border-color: var(--ws-accent);
+    background-color: rgb(255 255 255 / 0.72);
+  }
+
+  .stack-btn {
+    display: inline-grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    border: 1px solid var(--rail-dim);
+    color: var(--rail);
+    transition: color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+  }
+  .stack-btn:hover {
+    color: var(--brass);
+    border-color: var(--brass);
+  }
+  .stack-btn:active {
+    transform: scale(0.92);
+  }
+  .stack-btn:disabled {
+    opacity: 0.3;
   }
 }
 
@@ -116,5 +481,29 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .wood-box {
+    height: calc(100dvh - var(--shell-pad) * 2);
+    border-radius: 16px;
+    padding: 8px;
+  }
+
+  .box-lid {
+    padding: 7px 12px;
+  }
+
+  .box-interior {
+    padding: 8px;
+  }
+
+  .note {
+    inset: 12px 0 24px;
+  }
+
+  .note-body {
+    padding: 18px 18px 16px;
   }
 }

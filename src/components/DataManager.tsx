@@ -12,6 +12,34 @@ const BACKUP_KEYS = [
   "ws.chartPeriod.v1",
 ];
 
+function readCount(key: string): number {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return 0;
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.length : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function readBytes(): number {
+  let total = 0;
+  for (const key of BACKUP_KEYS) {
+    try {
+      total += localStorage.getItem(key)?.length ?? 0;
+    } catch {
+      /* 忽略读取失败 */
+    }
+  }
+  return total;
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  return `${(bytes / 1024).toFixed(1)} KB`;
+}
+
 function readLocal(): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const key of BACKUP_KEYS) {
@@ -52,6 +80,13 @@ export function DataManager() {
   const [msg, setMsg] = useState<{ kind: "ok" | "warn"; text: string } | null>(
     null
   );
+  const [stats] = useState(() => ({
+    checkins: readCount("ws.checkins.v1"),
+    bookmarks: readCount("ws.bookmarks.v1"),
+    stocks: readCount("ws.stocks.v1"),
+    funds: readCount("ws.funds.v1"),
+    bytes: readBytes(),
+  }));
 
   function exportData() {
     const payload = {
@@ -110,7 +145,7 @@ export function DataManager() {
         title="数据备份"
         desc="打卡、常用网站、自选行情等数据只存在本机浏览器，建议定期导出备份。"
       />
-      <div className="rounded-2xl border border-line bg-surface2 p-5">
+      <div className="rounded-xl border border-line bg-white/40 p-4">
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
@@ -151,10 +186,38 @@ export function DataManager() {
             {msg.text}
           </p>
         )}
+        <dl className="mt-4 grid grid-cols-2 gap-2 border-t border-line pt-4 sm:grid-cols-4">
+          {[
+            ["打卡项目", stats.checkins],
+            ["常用网站", stats.bookmarks],
+            ["股票自选", stats.stocks],
+            ["基金自选", stats.funds],
+          ].map(([label, value]) => (
+            <div
+              key={String(label)}
+              className="rounded-lg border border-line bg-white/40 px-2.5 py-2"
+            >
+              <dt className="text-[10px] text-mut">{label}</dt>
+              <dd className="mt-0.5 font-mono text-lg leading-none tabular-nums text-ink">
+                {value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-2 text-[10px] text-faint">
+          本机数据约 {formatBytes(stats.bytes)}
+        </p>
+
         <p className="mt-4 border-t border-line pt-4 text-xs text-faint">
           备份包含：主题、习惯打卡、常用网站、股票自选、基金自选、搜索引擎显示设置。
           换设备或清理缓存前先导出，在新设备上导入即可恢复。
         </p>
+
+        <ul className="mt-3 space-y-1 text-[11px] leading-relaxed text-mut">
+          <li>· 建议每月导出一次，文件名带日期，方便回滚。</li>
+          <li>· 换设备或清理浏览器数据前，先导出再导入。</li>
+          <li>· 备份文件包含个人数据，请不要公开发送。</li>
+        </ul>
       </div>
     </section>
   );

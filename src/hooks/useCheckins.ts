@@ -94,25 +94,29 @@ export function useCheckins() {
     ]);
   }, []);
 
-  const toggleToday = useCallback((id: string) => {
-    const today = beijingDateKey(new Date());
+  const toggleDate = useCallback((id: string, dateKey: string) => {
     setItems((prev) =>
       prev.map((item) => {
         if (item.id !== id) return item;
         const history = { ...item.history };
-        if (history[today]) {
-          delete history[today];
+        if (history[dateKey]) {
+          delete history[dateKey];
         } else {
-          history[today] = Date.now();
+          history[dateKey] = Date.now();
         }
         return { ...item, history };
       })
     );
   }, []);
 
+  const toggleToday = useCallback(
+    (id: string) => toggleDate(id, beijingDateKey(new Date())),
+    [toggleDate]
+  );
+
   const removeItem = useCallback((id: string) => {
     setItems((prev) => prev.filter((item) => item.id !== id));
   }, []);
 
-  return { items, addItem, toggleToday, removeItem };
+  return { items, addItem, toggleDate, toggleToday, removeItem };
 }

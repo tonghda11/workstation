@@ -213,8 +213,8 @@ export function VideoDownload() {
         title="视频下载"
         desc="粘贴视频链接，生成一键下载脚本，在电脑上双击即可把视频保存到本地。"
       />
-      <div className="rounded-2xl border border-line bg-surface2 p-5">
-        <form onSubmit={generate} className="flex gap-2">
+      <div className="rounded-xl border border-line bg-white/40 p-4">
+        <form onSubmit={generate} className="flex flex-wrap gap-2">
           <input
             type="url"
             value={url}
@@ -222,24 +222,24 @@ export function VideoDownload() {
               setUrl(e.target.value);
               setDone(false);
             }}
-            placeholder="粘贴视频页面链接，如 https://www.bilibili.com/video/..."
+            placeholder="粘贴视频链接，如 https://www.bilibili.com/video/..."
             aria-label="视频链接"
-            className="min-w-0 flex-1 rounded-[10px] border border-line bg-surface px-3 py-2 text-sm focus:border-accent"
+            className="ink-input min-w-[200px] flex-1 rounded-lg border px-3 py-2 text-sm text-ink placeholder:text-faint"
           />
           <button
             type="submit"
             disabled={!valid}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-accent px-4 text-sm font-medium text-accent-ink transition disabled:opacity-40 active:scale-95"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-sm font-medium text-accent-ink transition disabled:opacity-40 active:scale-95"
           >
             <ArrowDown size={15} weight="bold" />
-            生成下载脚本
+            生成脚本
           </button>
           <button
             type="button"
             onClick={copy}
             disabled={!valid}
             aria-label="复制视频链接"
-            className="grid h-9 w-10 shrink-0 place-items-center rounded-full border border-line text-mut transition hover:border-line-strong hover:text-ink active:scale-90 disabled:opacity-40"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-line text-mut transition hover:border-line-strong hover:text-ink active:scale-90 disabled:opacity-40"
           >
             {copied ? (
               <Check size={15} weight="bold" />
@@ -250,19 +250,47 @@ export function VideoDownload() {
         </form>
 
         {done && (
-          <p className="mt-3 flex items-center gap-1.5 text-sm text-mut">
-            <Check size={15} weight="bold" className="text-up" />
-            脚本已生成：把它保存到电脑任意文件夹，双击运行即可开始下载。
+          <p className="mt-2.5 flex items-center gap-1.5 text-xs text-mut">
+            <Check size={14} weight="bold" className="text-down" />
+            脚本已生成：保存到电脑任意文件夹，双击运行即可开始下载。
           </p>
         )}
 
-        <ul className="mt-4 space-y-1.5 border-t border-line pt-4 text-sm text-mut">
-          <li>网页受浏览器安全限制无法直接下载视频，生成的是在 Windows 电脑上运行的一键脚本。</li>
-          <li>支持 YouTube、B 站、抖音、微博、Twitter/X 等 1000+ 网站。</li>
-          <li>首次运行会自动下载 yt-dlp（约 20MB），必要时自动下载 ffmpeg；检测到本地代理（Clash / V2Ray）会自动使用。</li>
-          <li>下载器优先从 GitHub 官方渠道获取，镜像仅为备用；请只下载你有权保存的内容，并留意第三方镜像的潜在风险。</li>
-          <li>视频默认保存到脚本所在文件夹的 videos 目录。</li>
-        </ul>
+        <ol className="mt-3 grid gap-2 border-t border-line pt-3 sm:grid-cols-3">
+          {[
+            ["1", "复制链接", "在视频页面复制地址栏的链接"],
+            ["2", "生成脚本", "粘贴到上面，下载 .bat 文件"],
+            ["3", "双击运行", "自动获取 yt-dlp 并保存视频"],
+          ].map(([step, title, detail]) => (
+            <li
+              key={step}
+              className="flex items-start gap-2 rounded-lg border border-line bg-white/40 px-2.5 py-2"
+            >
+              <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-accent text-[10px] font-bold text-accent-ink">
+                {step}
+              </span>
+              <div className="min-w-0">
+                <p className="text-xs font-medium">{title}</p>
+                <p className="mt-0.5 text-[10px] leading-relaxed text-mut">
+                  {detail}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ol>
+
+        <details className="mt-3 border-t border-line pt-2.5">
+          <summary className="cursor-pointer text-xs font-medium text-mut transition hover:text-ink">
+            使用说明
+          </summary>
+          <ul className="mt-2 space-y-1 text-[11px] leading-relaxed text-mut">
+            <li>网页受浏览器安全限制无法直接下载视频，生成的是在 Windows 电脑上运行的一键脚本。</li>
+            <li>支持 YouTube、B 站、抖音、微博、Twitter/X 等 1000+ 网站。</li>
+            <li>首次运行会自动下载 yt-dlp（约 20MB），必要时自动下载 ffmpeg；检测到本地代理（Clash / V2Ray）会自动使用。</li>
+            <li>下载器优先从 GitHub 官方渠道获取，镜像仅为备用；请只下载你有权保存的内容。</li>
+            <li>视频默认保存到脚本所在文件夹的 videos 目录。</li>
+          </ul>
+        </details>
       </div>
     </section>
   );

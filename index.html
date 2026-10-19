@@ -6,14 +6,17 @@
     <title>我的工作站</title>
     <meta
       name="description"
-      content="个人工作站：北京时间、多平台搜索、习惯打卡、设备与环境信息。"
+      content="个人工作站：木盒里叠放的便利贴，搜索、常用网站、自选行情、打卡日历与环境设备信息。"
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="./manifest.webmanifest" />
     <style>
       body {
         margin: 0;
-        background: #e9edf2;
+        background-color: #3a2110;
+        background-image:
+          radial-gradient(900px 520px at 50% -12%, rgb(255 214 160 / 0.2), transparent 70%),
+          linear-gradient(96deg, #2a1709, #4b2d15 38%, #2a1709);
       }
       #app-loading {
         display: flex;
@@ -23,43 +26,29 @@
         min-height: 62vh;
         gap: 12px;
         font-family: system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;
-        color: #5b6779;
+        color: #e8d6b8;
       }
       .app-loading-mark {
         width: 52px;
         height: 52px;
-        border-radius: 14px;
-        background: #1f4fd8;
-        color: #ffffff;
+        border-radius: 12px;
+        background: linear-gradient(180deg, #f0d49a, #d9b26a 55%, #a97f3f);
+        color: #3a2410;
         display: grid;
         place-items: center;
         font-size: 24px;
         font-weight: 700;
+        box-shadow: 0 8px 18px rgb(0 0 0 / 0.45);
       }
       .app-loading-btn {
         margin-top: 4px;
         padding: 8px 18px;
         border-radius: 999px;
-        border: 1px solid rgba(22, 28, 38, 0.24);
+        border: 1px solid rgb(240 219 184 / 0.4);
         background: transparent;
         color: inherit;
         font-size: 14px;
         cursor: pointer;
-      }
-      @media (prefers-color-scheme: dark) {
-        body {
-          background: #0c1116;
-        }
-        #app-loading {
-          color: #94a2b5;
-        }
-        .app-loading-mark {
-          background: #7d9cff;
-          color: #0d1624;
-        }
-        .app-loading-btn {
-          border-color: rgba(232, 237, 244, 0.24);
-        }
       }
     </style>
     <script>
