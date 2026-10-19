@@ -9,6 +9,7 @@ const BACKUP_KEYS = [
   "ws.stocks.v1",
   "ws.funds.v1",
   "ws.news.v1",
+  "ws.chartPeriod.v1",
 ];
 
 function readLocal(): Record<string, unknown> {

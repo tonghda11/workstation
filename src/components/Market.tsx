@@ -11,6 +11,7 @@ import {
   fetchFundTrend,
   fetchStockKline,
   fetchStocks,
+  type ChartPeriod,
   type FundQuote,
   type KlinePoint,
   type StockQuote,
@@ -41,6 +42,82 @@ const SECID_PREFIX: Record<Market, string> = {
 
 type Status = "idle" | "loading" | "ok" | "error";
 type SortMode = "default" | "pct" | "code";
+
+const PERIOD_LABELS: Record<ChartPeriod, string> = {
+  minute: "分时",
+  day: "日K",
+  week: "周K",
+  month: "月K",
+};
+
+const STOCK_PERIODS: ChartPeriod[] = ["minute", "day", "week", "month"];
+const FUND_PERIODS: ChartPeriod[] = ["day", "week", "month"];
+
+const PERIOD_KEY = "ws.chartPeriod.v1";
+
+function loadPeriod(
+  kind: "stock" | "fund",
+  options: ChartPeriod[]
+): ChartPeriod {
+  try {
+    const raw = localStorage.getItem(PERIOD_KEY);
+    if (raw) {
+      const saved = JSON.parse(raw) as Record<string, unknown>;
+      const value = saved?.[kind];
+      if (typeof value === "string" && options.includes(value as ChartPeriod)) {
+        return value as ChartPeriod;
+      }
+    }
+  } catch {
+    /* 忽略损坏的本地设置 */
+  }
+  return "day";
+}
+
+function savePeriod(kind: "stock" | "fund", value: ChartPeriod) {
+  try {
+    const raw = localStorage.getItem(PERIOD_KEY);
+    const saved = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+    saved[kind] = value;
+    localStorage.setItem(PERIOD_KEY, JSON.stringify(saved));
+  } catch {
+    /* 忽略存储失败 */
+  }
+}
+
+function PeriodTabs({
+  value,
+  options,
+  onChange,
+}: {
+  value: ChartPeriod;
+  options: ChartPeriod[];
+  onChange: (period: ChartPeriod) => void;
+}) {
+  return (
+    <div
+      className="mb-3 flex flex-wrap items-center gap-1"
+      role="group"
+      aria-label="走势图周期"
+    >
+      {options.map((period) => (
+        <button
+          key={period}
+          type="button"
+          aria-pressed={value === period}
+          onClick={() => onChange(period)}
+          className={`rounded-full px-2.5 py-1 text-xs font-medium transition active:scale-95 ${
+            value === period
+              ? "bg-accent text-accent-ink"
+              : "border border-line-strong text-mut hover:border-accent hover:text-accent"
+          }`}
+        >
+          {PERIOD_LABELS[period]}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 const hmFmt = new Intl.DateTimeFormat("zh-CN", {
   hour: "2-digit",
@@ -138,7 +215,15 @@ function TrendChart({ points }: { points: KlinePoint[] }) {
   );
 }
 
-function StockChart({ item }: { item: StockItem }) {
+function StockChart({
+  item,
+  period,
+  onPeriodChange,
+}: {
+  item: StockItem;
+  period: ChartPeriod;
+  onPeriodChange: (period: ChartPeriod) => void;
+}) {
   const [points, setPoints] = useState<KlinePoint[] | null>(null);
   const [state, setState] = useState<"loading" | "ok" | "error">("loading");
   const [tick, setTick] = useState(0);
@@ -146,9 +231,11 @@ function StockChart({ item }: { item: StockItem }) {
   useEffect(() => {
     let cancelled = false;
     setState("loading");
+    setPoints(null);
     fetchStockKline(
       `${item.market}${item.code}`,
-      `${SECID_PREFIX[item.market]}.${item.code}`
+      `${SECID_PREFIX[item.market]}.${item.code}`,
+      period
     )
       .then((pts) => {
         if (cancelled) return;
@@ -165,32 +252,45 @@ function StockChart({ item }: { item: StockItem }) {
     return () => {
       cancelled = true;
     };
-  }, [item.market, item.code, tick]);
+  }, [item.market, item.code, period, tick]);
 
-  if (state === "loading") {
-    return (
-      <p className="py-6 text-center text-xs text-mut">正在获取走势…</p>
-    );
-  }
-  if (state === "error" || !points) {
-    return (
-      <div className="flex items-center justify-between gap-2 text-xs text-mut">
-        <span>走势图获取失败</span>
-        <button
-          type="button"
-          onClick={() => setTick((t) => t + 1)}
-          className="inline-flex items-center gap-1 rounded-full border border-line-strong px-2.5 py-1 font-medium transition hover:border-accent hover:text-accent active:scale-95"
-        >
-          <ArrowClockwise size={12} weight="bold" />
-          重试
-        </button>
-      </div>
-    );
-  }
-  return <TrendChart points={points} />;
+  return (
+    <div>
+      <PeriodTabs
+        value={period}
+        options={STOCK_PERIODS}
+        onChange={onPeriodChange}
+      />
+      {state === "loading" ? (
+        <p className="py-6 text-center text-xs text-mut">正在获取走势…</p>
+      ) : state === "error" || !points ? (
+        <div className="flex items-center justify-between gap-2 text-xs text-mut">
+          <span>走势图获取失败</span>
+          <button
+            type="button"
+            onClick={() => setTick((t) => t + 1)}
+            className="inline-flex items-center gap-1 rounded-full border border-line-strong px-2.5 py-1 font-medium transition hover:border-accent hover:text-accent active:scale-95"
+          >
+            <ArrowClockwise size={12} weight="bold" />
+            重试
+          </button>
+        </div>
+      ) : (
+        <TrendChart points={points} />
+      )}
+    </div>
+  );
 }
 
-function FundChart({ code }: { code: string }) {
+function FundChart({
+  code,
+  period,
+  onPeriodChange,
+}: {
+  code: string;
+  period: ChartPeriod;
+  onPeriodChange: (period: ChartPeriod) => void;
+}) {
   const [points, setPoints] = useState<KlinePoint[] | null>(null);
   const [state, setState] = useState<"loading" | "ok" | "error">("loading");
   const [tick, setTick] = useState(0);
@@ -198,7 +298,8 @@ function FundChart({ code }: { code: string }) {
   useEffect(() => {
     let cancelled = false;
     setState("loading");
-    fetchFundTrend(code)
+    setPoints(null);
+    fetchFundTrend(code, period)
       .then((pts) => {
         if (cancelled) return;
         if (pts.length >= 2) {
@@ -214,29 +315,34 @@ function FundChart({ code }: { code: string }) {
     return () => {
       cancelled = true;
     };
-  }, [code, tick]);
+  }, [code, period, tick]);
 
-  if (state === "loading") {
-    return (
-      <p className="py-6 text-center text-xs text-mut">正在获取走势…</p>
-    );
-  }
-  if (state === "error" || !points) {
-    return (
-      <div className="flex items-center justify-between gap-2 text-xs text-mut">
-        <span>走势图获取失败</span>
-        <button
-          type="button"
-          onClick={() => setTick((t) => t + 1)}
-          className="inline-flex items-center gap-1 rounded-full border border-line-strong px-2.5 py-1 font-medium transition hover:border-accent hover:text-accent active:scale-95"
-        >
-          <ArrowClockwise size={12} weight="bold" />
-          重试
-        </button>
-      </div>
-    );
-  }
-  return <TrendChart points={points} />;
+  return (
+    <div>
+      <PeriodTabs
+        value={period}
+        options={FUND_PERIODS}
+        onChange={onPeriodChange}
+      />
+      {state === "loading" ? (
+        <p className="py-6 text-center text-xs text-mut">正在获取走势…</p>
+      ) : state === "error" || !points ? (
+        <div className="flex items-center justify-between gap-2 text-xs text-mut">
+          <span>走势图获取失败</span>
+          <button
+            type="button"
+            onClick={() => setTick((t) => t + 1)}
+            className="inline-flex items-center gap-1 rounded-full border border-line-strong px-2.5 py-1 font-medium transition hover:border-accent hover:text-accent active:scale-95"
+          >
+            <ArrowClockwise size={12} weight="bold" />
+            重试
+          </button>
+        </div>
+      ) : (
+        <TrendChart points={points} />
+      )}
+    </div>
+  );
 }
 
 function ActionButton({
@@ -269,6 +375,8 @@ function StockRow({
   item,
   quote,
   chartOpen,
+  period,
+  onPeriodChange,
   onRemove,
   onPin,
   onChart,
@@ -276,6 +384,8 @@ function StockRow({
   item: StockItem;
   quote?: StockQuote;
   chartOpen: boolean;
+  period: ChartPeriod;
+  onPeriodChange: (period: ChartPeriod) => void;
   onRemove: () => void;
   onPin: () => void;
   onChart: () => void;
@@ -321,7 +431,11 @@ function StockRow({
       </div>
       {chartOpen && (
         <div className="border-t border-line pt-3">
-          <StockChart item={item} />
+          <StockChart
+            item={item}
+            period={period}
+            onPeriodChange={onPeriodChange}
+          />
         </div>
       )}
     </div>
@@ -332,6 +446,8 @@ function FundRow({
   item,
   quote,
   chartOpen,
+  period,
+  onPeriodChange,
   onRemove,
   onPin,
   onChart,
@@ -339,6 +455,8 @@ function FundRow({
   item: FundItem;
   quote?: FundQuote;
   chartOpen: boolean;
+  period: ChartPeriod;
+  onPeriodChange: (period: ChartPeriod) => void;
   onRemove: () => void;
   onPin: () => void;
   onChart: () => void;
@@ -387,7 +505,11 @@ function FundRow({
       </div>
       {chartOpen && (
         <div className="border-t border-line pt-3">
-          <FundChart code={item.code} />
+          <FundChart
+            code={item.code}
+            period={period}
+            onPeriodChange={onPeriodChange}
+          />
         </div>
       )}
     </div>
@@ -461,6 +583,22 @@ export function Market() {
   const [fundSort, setFundSort] = useState<SortMode>("default");
   const [stockChartId, setStockChartId] = useState<string | null>(null);
   const [fundChartId, setFundChartId] = useState<string | null>(null);
+  const [stockPeriod, setStockPeriod] = useState<ChartPeriod>(() =>
+    loadPeriod("stock", STOCK_PERIODS)
+  );
+  const [fundPeriod, setFundPeriod] = useState<ChartPeriod>(() =>
+    loadPeriod("fund", FUND_PERIODS)
+  );
+
+  const changeStockPeriod = (period: ChartPeriod) => {
+    setStockPeriod(period);
+    savePeriod("stock", period);
+  };
+
+  const changeFundPeriod = (period: ChartPeriod) => {
+    setFundPeriod(period);
+    savePeriod("fund", period);
+  };
 
   const stockKey = useMemo(
     () => stocks.map(stockApiCode).join(","),
@@ -604,7 +742,7 @@ export function Market() {
     <section aria-label="自选行情">
       <SectionHeader
         title="自选行情"
-        desc="添加股票与基金代码，支持置顶、按涨幅排序，点击图表按钮查看近期走势。"
+        desc="添加股票与基金代码，支持置顶、按涨幅排序；展开走势图可切换分时 / 日 / 周 / 月。"
       />
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="min-w-0 rounded-2xl border border-line bg-surface2 p-5">
@@ -674,6 +812,8 @@ export function Market() {
                 item={s}
                 quote={stockQuotes[stockApiCode(s)]}
                 chartOpen={stockChartId === s.id}
+                period={stockPeriod}
+                onPeriodChange={changeStockPeriod}
                 onRemove={() => removeStock(s.id)}
                 onPin={() => pinStock(s.id)}
                 onChart={() =>
@@ -683,7 +823,7 @@ export function Market() {
             ))}
           </PanelBody>
           <p className="mt-3 text-xs text-faint">
-            行情来自腾讯证券接口，走势图为近 90 个交易日日线，腾讯优先、失败回退东方财富。
+            行情来自腾讯证券接口；走势图支持分时 / 日 / 周 / 月，腾讯优先、失败回退东方财富。
           </p>
         </div>
 
@@ -742,6 +882,8 @@ export function Market() {
                 item={f}
                 quote={fundQuotes[f.code]}
                 chartOpen={fundChartId === f.id}
+                period={fundPeriod}
+                onPeriodChange={changeFundPeriod}
                 onRemove={() => removeFund(f.id)}
                 onPin={() => pinFund(f.id)}
                 onChart={() =>
@@ -751,7 +893,7 @@ export function Market() {
             ))}
           </PanelBody>
           <p className="mt-3 text-xs text-faint">
-            基金涨幅优先显示当日估值，失败时回退到最近净值日涨跌；走势图为净值走势，来自天天基金。
+            基金涨幅优先显示当日估值，失败时回退到最近净值日涨跌；走势图为净值走势（日 / 周 / 月），来自天天基金。
           </p>
         </div>
       </div>
