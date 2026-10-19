@@ -10,9 +10,20 @@ createRoot(document.getElementById("root")!).render(
 );
 
 if (!import.meta.env.DEV && "serviceWorker" in navigator) {
+  const hadController = Boolean(navigator.serviceWorker.controller);
+
+  // 新版本接管时自动刷新一次，避免还停留在旧页面上
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!hadController) return;
+    window.location.reload();
+  });
+
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").catch(() => {
-      /* 离线缓存不可用时忽略 */
-    });
+    navigator.serviceWorker
+      .register("./sw.js", { updateViaCache: "none" })
+      .then((registration) => registration.update())
+      .catch(() => {
+        /* 离线缓存不可用时忽略 */
+      });
   });
 }

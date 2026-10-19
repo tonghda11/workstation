@@ -1,5 +1,10 @@
 /* 我的工作站 Service Worker：离线缓存与加载回退 */
-const CACHE_NAME = "workstation-v1";
+/*
+ * 页面（导航请求）永远先走网络并绕过 HTTP 缓存，避免 GitHub Pages 的
+ * max-age=600 让改版晚十分钟才出现；只有离线时才回退到缓存副本。
+ * 静态资源带内容哈希，继续用缓存优先。
+ */
+const CACHE_NAME = "workstation-v2";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -26,7 +31,7 @@ self.addEventListener("fetch", (event) => {
 
   if (req.mode === "navigate") {
     event.respondWith(
-      fetch(req)
+      fetch(req, { cache: "no-store" })
         .then((res) => {
           const copy = res.clone();
           caches.open(CACHE_NAME).then((c) => c.put(req, copy));
