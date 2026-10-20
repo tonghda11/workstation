@@ -32,6 +32,12 @@ export function News() {
   const [queries, setQueries] = useState<Record<string, string>>({});
   const [hidden, setHidden] = useState<string[]>(loadHidden);
   const visible = NEWS_PLATFORMS.filter((p) => !hidden.includes(p.id));
+  const gridClass =
+    visible.length >= 3
+      ? "md:grid-cols-3"
+      : visible.length === 2
+        ? "md:grid-cols-2"
+        : "md:grid-cols-1";
 
   useEffect(() => {
     try {
@@ -47,120 +53,105 @@ export function News() {
     );
   }
 
-  function submit(event: FormEvent<HTMLFormElement>, id: string, url: string) {
-    event.preventDefault();
-    const query = queries[id]?.trim();
-    if (!query) return;
-    window.open(url + encodeURIComponent(query), "_blank", "noopener");
+  function submit(e: FormEvent<HTMLFormElement>, id: string, url: string) {
+    e.preventDefault();
+    const q = queries[id]?.trim();
+    if (!q) return;
+    window.open(url + encodeURIComponent(q), "_blank", "noopener");
     setQueries((prev) => ({ ...prev, [id]: "" }));
   }
 
   return (
     <section aria-label="新闻平台">
       <SectionHeader
-        title="搜索"
-        desc="输入关键词，回车在新标签页打开搜索结果。谷歌需要特定网络环境。"
+        title="新闻平台"
+        desc="按需显示搜索平台，输入关键词后回车，结果在新标签页打开。"
         extra={
-          <p className="text-xs text-mut">
-            <span className="font-mono font-semibold text-ink">
-              {visible.length}
-            </span>{" "}
-            个平台
-          </p>
+          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="显示与隐藏搜索平台">
+            {NEWS_PLATFORMS.map((p) => {
+              const on = !hidden.includes(p.id);
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => toggle(p.id)}
+                  className={`rounded-full border px-3 py-1 text-sm font-medium transition active:scale-95 ${
+                    on
+                      ? "border-accent text-accent"
+                      : "border-line text-faint hover:text-mut"
+                  }`}
+                >
+                  {p.name}
+                </button>
+              );
+            })}
+          </div>
         }
       />
-
-      <div className="grid gap-2.5 md:grid-cols-3">
-        {visible.map((platform) => (
+      <div className={`grid gap-4 ${gridClass}`}>
+        {visible.map((p) => (
           <div
-            key={platform.id}
-            className="flex flex-col gap-2 rounded-xl border border-line bg-white/40 p-3"
+            key={p.id}
+            className="group flex flex-col gap-4 rounded-2xl border border-line bg-surface2 p-5 transition-colors hover:border-line-strong"
           >
-            <div className="flex items-center gap-2">
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[9px] border border-line bg-white/65">
+            <div className="flex items-center gap-3">
+              <span className="grid h-9 w-9 place-items-center rounded-[10px] border border-line bg-surface opacity-80 grayscale transition duration-200 group-hover:opacity-100 group-hover:grayscale-0">
                 <img
-                  src={`icons/${platform.id}.svg`}
-                  alt={`${platform.name} 图标`}
-                  className="h-4 w-4"
+                  src={`icons/${p.id}.svg`}
+                  alt={`${p.name} 图标`}
+                  className="h-5 w-5"
                   loading="lazy"
                 />
               </span>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium leading-none">
-                  {platform.name}
-                </p>
-                <p className="mt-1 font-mono text-[10px] leading-none text-faint">
-                  {platform.latin}
-                </p>
+              <div>
+                <h3 className="font-semibold leading-tight">{p.name}</h3>
+                <p className="font-mono text-xs text-faint">{p.latin}</p>
               </div>
             </div>
-
+            {p.id === "google" && (
+              <p className="-mt-2 text-xs text-faint">
+                需特定网络环境访问
+              </p>
+            )}
             <form
-              className="flex gap-1.5"
-              onSubmit={(event) =>
-                submit(event, platform.id, platform.searchUrl)
-              }
+              className="flex gap-2"
+              onSubmit={(e) => submit(e, p.id, p.searchUrl)}
             >
               <input
                 type="search"
-                value={queries[platform.id] ?? ""}
-                onChange={(event) =>
-                  setQueries((prev) => ({
-                    ...prev,
-                    [platform.id]: event.target.value,
-                  }))
+                value={queries[p.id] ?? ""}
+                onChange={(e) =>
+                  setQueries((prev) => ({ ...prev, [p.id]: e.target.value }))
                 }
-                placeholder={platform.placeholder}
-                aria-label={`${platform.name}搜索关键词`}
-                className="ink-input min-w-0 flex-1 rounded-lg border px-2.5 py-1.5 text-xs text-ink placeholder:text-faint"
+                placeholder={p.placeholder}
+                aria-label={`${p.name}搜索关键词`}
+                className="min-w-0 flex-1 rounded-[10px] border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-faint focus:border-accent"
               />
               <button
                 type="submit"
-                aria-label={`用${platform.name}搜索`}
-                className="grid h-[30px] w-8 shrink-0 place-items-center rounded-lg bg-accent text-accent-ink transition active:scale-95"
+                className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent px-4 text-sm font-medium text-accent-ink transition active:scale-95"
               >
-                <MagnifyingGlass size={14} weight="bold" />
+                <MagnifyingGlass size={15} weight="bold" />
+                搜索
               </button>
             </form>
-
-            <div className="flex flex-wrap gap-x-3 gap-y-1">
-              {platform.quickLinks.map((link) => (
+            <div className="flex flex-wrap gap-x-4 gap-y-2 border-t border-line pt-3">
+              {p.quickLinks.map((link) => (
                 <a
                   key={link.href}
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-0.5 text-[11px] text-mut transition hover:text-accent"
+                  className="inline-flex items-center gap-1 text-sm text-mut transition hover:text-accent"
                 >
-                  <ArrowUpRight size={10} weight="bold" />
+                  <ArrowUpRight size={13} weight="bold" />
                   {link.label}
                 </a>
               ))}
             </div>
           </div>
         ))}
-      </div>
-
-      <div className="mt-3 flex flex-wrap items-center gap-1.5">
-        <span className="text-[11px] text-faint">显示</span>
-        {NEWS_PLATFORMS.map((platform) => {
-          const on = !hidden.includes(platform.id);
-          return (
-            <button
-              key={platform.id}
-              type="button"
-              aria-pressed={on}
-              onClick={() => toggle(platform.id)}
-              className={`rounded-full border px-2.5 py-0.5 text-[11px] transition active:scale-95 ${
-                on
-                  ? "border-accent/60 text-accent"
-                  : "border-line text-faint hover:text-mut"
-              }`}
-            >
-              {platform.name}
-            </button>
-          );
-        })}
       </div>
     </section>
   );
