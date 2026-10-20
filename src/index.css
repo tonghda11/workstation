@@ -147,7 +147,7 @@
 }
 
 @layer components {
-  /* ================= 桌面 ================= */
+  /* ================= 建模视口 ================= */
   .app-shell {
     --shell-pad: clamp(14px, 3vw, 44px);
     position: relative;
@@ -156,21 +156,11 @@
     place-items: center;
     padding: var(--shell-pad);
     overflow: hidden;
+    background-color: #0b0d11;
     background-image:
-      radial-gradient(900px 520px at 50% -12%, rgb(255 214 160 / 0.2), transparent 70%),
-      radial-gradient(1200px 700px at 50% 120%, rgb(0 0 0 / 0.55), transparent 70%),
-      repeating-linear-gradient(
-        180deg,
-        transparent 0 118px,
-        rgb(0 0 0 / 0.32) 118px 120px
-      ),
-      repeating-linear-gradient(
-        90deg,
-        rgb(255 255 255 / 0.022) 0 3px,
-        transparent 3px 11px
-      ),
-      linear-gradient(96deg, var(--wood-desk-2), var(--wood-desk) 38%, var(--wood-desk-2));
-    background-color: var(--wood-desk-2);
+      radial-gradient(760px 420px at 50% 10%, rgb(255 206 150 / 0.16), transparent 62%),
+      radial-gradient(1100px 620px at 50% 108%, rgb(0 0 0 / 0.78), transparent 62%),
+      linear-gradient(180deg, #1a1f28 0%, #0f131a 46%, #090b0f 100%);
   }
 
   .app-shell::before {
@@ -178,9 +168,74 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    opacity: 0.16;
-    mix-blend-mode: overlay;
+    opacity: 0.1;
+    mix-blend-mode: soft-light;
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
+  }
+
+  /* 地平面网格，营造建模视口 */
+  .viewport-floor {
+    position: absolute;
+    left: -25%;
+    right: -25%;
+    top: 44%;
+    bottom: -20%;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgb(150 185 255 / 0.22) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(150 185 255 / 0.22) 1px, transparent 1px);
+    background-size: 76px 76px;
+    transform: translate3d(var(--parallax-x, 0px), var(--parallax-y, 0px), 0)
+      perspective(820px) rotateX(64deg);
+    transform-origin: top center;
+    -webkit-mask-image: radial-gradient(62% 72% at 50% 20%, #000 12%, transparent 78%);
+    mask-image: radial-gradient(62% 72% at 50% 20%, #000 12%, transparent 78%);
+    opacity: 0.85;
+  }
+
+  .viewport-horizon {
+    position: absolute;
+    left: 4%;
+    right: 4%;
+    top: 43.7%;
+    height: 1px;
+    pointer-events: none;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(150 185 255 / 0.26),
+      transparent
+    );
+  }
+
+  .viewport-hud {
+    position: absolute;
+    left: clamp(14px, 3vw, 34px);
+    bottom: clamp(12px, 2.4vw, 26px);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgb(190 205 230 / 0.4);
+    pointer-events: none;
+  }
+
+  .viewport-hud strong {
+    font-weight: 600;
+    color: rgb(224 234 250 / 0.72);
+  }
+
+  .axis-gizmo {
+    position: absolute;
+    right: clamp(14px, 3vw, 34px);
+    bottom: clamp(12px, 2.4vw, 26px);
+    width: 56px;
+    height: 56px;
+    color: rgb(190 205 230 / 0.4);
+    pointer-events: none;
   }
 
   /* ================= 立体抽屉 ================= */
@@ -194,39 +249,70 @@
     perspective-origin: 50% 42%;
   }
 
-  /* 抽屉落在桌面上的投影 */
+  /* 物体背后的柔光，让模型从深色背景里分离出来 */
+  .stage::before {
+    content: "";
+    position: absolute;
+    left: 12%;
+    right: 12%;
+    top: 12%;
+    bottom: 10%;
+    border-radius: 50%;
+    pointer-events: none;
+    background: radial-gradient(
+      closest-side,
+      rgb(255 198 138 / 0.16),
+      transparent 72%
+    );
+    filter: blur(26px);
+    transform: translate3d(
+      calc(var(--parallax-x, 0px) * -0.5),
+      calc(var(--parallax-y, 0px) * -0.5),
+      0
+    );
+  }
+
+  /* 抽屉落在视口地面上的投影 */
   .drawer-shadow {
     position: absolute;
     left: 50%;
-    bottom: 0%;
-    width: min(960px, 88%);
-    height: 84px;
+    bottom: 6%;
+    width: min(860px, 76%);
+    height: 66px;
     transform: translateX(-50%);
     border-radius: 50%;
     background: radial-gradient(
       closest-side,
-      rgb(0 0 0 / 0.8),
+      rgb(0 0 0 / 0.88),
       rgb(0 0 0 / 0.4) 56%,
       transparent 100%
     );
-    filter: blur(12px);
+    filter: blur(16px);
     pointer-events: none;
+  }
+
+  /* 装饰性厚度面与内容层共用同一个投影，分处两层，
+     这样内容层保持平面，浏览器命中检测才准确 */
+  .drawer3d,
+  .drawer-face {
+    grid-area: 1 / 1;
+    width: min(980px, 100%);
+    height: min(720px, calc(100dvh - var(--shell-pad) * 2 - 48px));
   }
 
   .drawer3d {
     --depth: 62px;
     position: relative;
-    width: min(1060px, 100%);
-    height: min(800px, calc(100dvh - var(--shell-pad) * 2 - 24px));
     transform-style: preserve-3d;
-    transform: rotateX(10deg) rotateY(-7deg);
+    transform: rotateX(12deg) rotateY(-9deg);
+    pointer-events: none;
   }
 
   /* ---------- 前面板 ---------- */
   .drawer-face {
-    position: absolute;
-    inset: 0;
+    position: relative;
     border-radius: 10px;
+    transform: rotateX(12deg) rotateY(-9deg);
     background-image:
       repeating-linear-gradient(
         180deg,
@@ -245,6 +331,21 @@
       inset 0 1px 0 rgb(255 236 198 / 0.4),
       inset 0 -2px 0 rgb(0 0 0 / 0.45),
       0 34px 60px -26px rgb(0 0 0 / 0.9);
+  }
+
+  /* 前面板倒角与受光 */
+  .drawer-face::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    pointer-events: none;
+    box-shadow:
+      inset 0 0 0 1px rgb(255 240 205 / 0.28),
+      inset 0 2px 3px rgb(255 240 205 / 0.18),
+      inset 0 -3px 6px rgb(0 0 0 / 0.4),
+      inset 3px 0 7px rgb(255 230 190 / 0.08),
+      inset -3px 0 9px rgb(0 0 0 / 0.32);
   }
 
   /* 抽屉厚度：顶面（端面木纹） */
@@ -346,6 +447,21 @@
       rgb(0 0 0 / 0)
     );
     border-radius: 8px 8px 0 0;
+  }
+
+  /* 内腔四壁的遮挡阴影 */
+  .drawer-opening::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 8px;
+    pointer-events: none;
+    background-image:
+      linear-gradient(90deg, rgb(0 0 0 / 0.6), transparent 16px),
+      linear-gradient(270deg, rgb(0 0 0 / 0.6), transparent 16px),
+      linear-gradient(180deg, rgb(0 0 0 / 0.6), transparent 18px),
+      linear-gradient(0deg, rgb(0 0 0 / 0.55), transparent 16px);
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.9);
   }
 
   /* ---------- 抽屉前挡板与拉手 ---------- */
@@ -484,14 +600,13 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
-    padding: 6px 8px 0;
+    padding: 10px 16px 0;
   }
 
   .stack-viewport {
     position: relative;
     flex: 1;
     min-height: 0;
-    perspective: 1400px;
   }
 
   .stack-rail {
@@ -563,7 +678,6 @@
       0 22px 40px -18px rgb(0 0 0 / 0.66),
       0 2px 0 rgb(255 255 255 / 0.24) inset,
       0 -2px 6px rgb(90 62 20 / 0.12) inset;
-    transform-style: preserve-3d;
     will-change: transform, opacity;
   }
 
@@ -691,11 +805,21 @@
     --shell-pad: 10px;
   }
 
-  .drawer3d {
-    --depth: 40px;
+  .drawer3d,
+  .drawer-face {
     width: 100%;
     height: calc(100dvh - var(--shell-pad) * 2);
     transform: rotateX(9deg) rotateY(-6deg);
+  }
+
+  .drawer3d {
+    --depth: 40px;
+  }
+
+  /* 小屏幕上抽屉占满视口，隐藏视口标注避免压住抽屉 */
+  .viewport-hud,
+  .axis-gizmo {
+    display: none;
   }
 
   .drawer-opening {
@@ -739,7 +863,7 @@
   }
 
   .note-zone {
-    padding: 4px 6px 0;
+    padding: 8px 10px 0;
   }
 
   .note {
